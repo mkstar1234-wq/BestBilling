@@ -25,17 +25,17 @@ export default defineConfig(() => {
           start_url: '.',
           icons: [
             {
-              src: 'pwa-192x192.png',
+              src: 'https://placehold.co/192x192/0284c7/ffffff.png',
               sizes: '192x192',
               type: 'image/png'
             },
             {
-              src: 'pwa-512x512.png',
+              src: 'https://placehold.co/512x512/0284c7/ffffff.png',
               sizes: '512x512',
               type: 'image/png'
             },
             {
-              src: 'pwa-512x512.png',
+              src: 'https://placehold.co/512x512/0284c7/ffffff.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'
