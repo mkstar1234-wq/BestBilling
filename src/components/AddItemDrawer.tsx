@@ -7,9 +7,10 @@ interface AddItemDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (item: { description: string; hsnSac: string; quantity: number; rate: number; per: string }) => void;
+  showHsnCode?: boolean;
 }
 
-export function AddItemDrawer({ isOpen, onClose, onAdd }: AddItemDrawerProps) {
+export function AddItemDrawer({ isOpen, onClose, onAdd, showHsnCode = true }: AddItemDrawerProps) {
   const [description, setDescription] = useState('');
   const [hsnSac, setHsnSac] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -76,16 +77,18 @@ export function AddItemDrawer({ isOpen, onClose, onAdd }: AddItemDrawerProps) {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">HSN/SAC Code (Optional)</label>
-                <input
-                  type="text"
-                  value={hsnSac}
-                  onChange={(e) => setHsnSac(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none uppercase"
-                  placeholder="e.g. 6205"
-                />
-              </div>
+              {showHsnCode && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">HSN/SAC Code (Optional)</label>
+                  <input
+                    type="text"
+                    value={hsnSac}
+                    onChange={(e) => setHsnSac(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none uppercase"
+                    placeholder="e.g. 6205"
+                  />
+                </div>
+              )}
 
               <div className="flex gap-4">
                 <div className="flex-1">

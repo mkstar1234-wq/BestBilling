@@ -28,6 +28,10 @@ export function SettingsView() {
     preferences: {
       showEwayBill: false,
       darkMode: false,
+      showBillOfSupply: true,
+      showStateCode: true,
+      showTransportReference: true,
+      showHsnCode: true,
     },
     updatedAt: Date.now(),
     syncStatus: 'synced',
@@ -401,6 +405,94 @@ export function SettingsView() {
               <span
                 aria-hidden="true"
                 className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${settings.preferences.showEwayBill ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between mt-6">
+            <div>
+              <h3 className="text-sm font-medium text-gray-900">Bill of Supply</h3>
+              <p className="text-xs text-gray-500">Show 'Bill of Supply' badge on the invoice</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                hapticFeedback('light');
+                updatePreferences({ showBillOfSupply: !settings.preferences.showBillOfSupply });
+              }}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${settings.preferences.showBillOfSupply ? 'bg-blue-600' : 'bg-gray-200'}`}
+              role="switch"
+              aria-checked={settings.preferences.showBillOfSupply}
+            >
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${settings.preferences.showBillOfSupply ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between mt-6">
+            <div>
+              <h3 className="text-sm font-medium text-gray-900">State Code</h3>
+              <p className="text-xs text-gray-500">Enable fields for state codes</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                hapticFeedback('light');
+                updatePreferences({ showStateCode: !settings.preferences.showStateCode });
+              }}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${settings.preferences.showStateCode ? 'bg-blue-600' : 'bg-gray-200'}`}
+              role="switch"
+              aria-checked={settings.preferences.showStateCode}
+            >
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${settings.preferences.showStateCode ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between mt-6">
+            <div>
+              <h3 className="text-sm font-medium text-gray-900">Transport Reference</h3>
+              <p className="text-xs text-gray-500">Enable transport reference field</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                hapticFeedback('light');
+                updatePreferences({ showTransportReference: !settings.preferences.showTransportReference });
+              }}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${settings.preferences.showTransportReference ? 'bg-blue-600' : 'bg-gray-200'}`}
+              role="switch"
+              aria-checked={settings.preferences.showTransportReference}
+            >
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${settings.preferences.showTransportReference ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between mt-6">
+            <div>
+              <h3 className="text-sm font-medium text-gray-900">HSN Code</h3>
+              <p className="text-xs text-gray-500">Enable HSN code field for items</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                hapticFeedback('light');
+                updatePreferences({ showHsnCode: !settings.preferences.showHsnCode });
+              }}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${settings.preferences.showHsnCode ? 'bg-blue-600' : 'bg-gray-200'}`}
+              role="switch"
+              aria-checked={settings.preferences.showHsnCode}
+            >
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${settings.preferences.showHsnCode ? 'translate-x-5' : 'translate-x-0'}`}
               />
             </button>
           </div>

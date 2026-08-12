@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Plus, Check, Receipt } from 'lucide-react';
+import { Plus, Check, Receipt, Sliders, X, FileText, MapPin, Truck, Hash } from 'lucide-react';
 import { Bill, InvoiceItem, SupplierProfile, AppSettings } from '../types';
 import { calculateItemAmount, calculateTotalAmount, calculateNetAmount, getNextInvoiceNumber } from '../lib/billingLogic';
 import { hapticFeedback } from '../lib/haptics';
 import { SwipeableItem } from './SwipeableItem';
 import { AddItemDrawer } from './AddItemDrawer';
 import { PreviewModal } from './PreviewModal';
-import { saveBillLocally, getLocalSettings, getLocalBills } from '../lib/offlineSync';
+import { saveBillLocally, getLocalSettings, getLocalBills, saveSettingsLocally } from '../lib/offlineSync';
 import { AnimatePresence } from 'motion/react';
 import { INDIAN_STATES } from '../lib/states';
 
@@ -22,6 +22,7 @@ export function BillForm() {
   });
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isPrefOpen, setIsPrefOpen] = useState(false);
   const [totalAmount, setTotalAmount] = useState(0);
   const [netAmount, setNetAmount] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
@@ -154,9 +155,25 @@ export function BillForm() {
   return (
     <div className="flex flex-col h-full bg-gray-50 pt-safe relative">
       {/* Header */}
-      <header className="bg-white px-4 py-3 border-b border-gray-200 sticky top-0 z-20 flex items-center shadow-sm">
-        <Receipt className="text-blue-600 mr-2 w-6 h-6" />
-        <h1 className="text-xl font-bold text-gray-900">New Invoice</h1>
+      <header className="bg-white px-4 py-3 border-b border-gray-200 sticky top-0 z-20 flex items-center justify-between shadow-sm">
+        <div className="flex items-center">
+          <Receipt className="text-blue-600 mr-2 w-6 h-6" />
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-gray-900">New Invoice</h1>
+            {settings?.preferences?.showBillOfSupply && (
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
+                Bill of Supply
+              </span>
+            )}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsPrefOpen(true)}
+          className="p-1.5 bg-gray-50 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-1 text-sm font-medium"
+        >
+          <Sliders className="w-4 h-4" />
+        </button>
       </header>
 
       {/* Main Scrollable Content */}
@@ -171,8 +188,8 @@ export function BillForm() {
               <input
                 type="text"
                 value={bill.invoiceNumber}
-                readOnly
-                className="w-full px-3 py-2.5 bg-gray-100 border border-transparent rounded-lg font-mono text-gray-600 outline-none"
+                onChange={(e) => updateBill({ invoiceNumber: e.target.value })}
+                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg font-mono outline-none focus:border-blue-500"
               />
             </div>
             <div className="flex-1">
@@ -196,15 +213,17 @@ export function BillForm() {
                 className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500"
               />
             </div>
-            <div className="w-1/3">
-              <label className="block text-xs font-medium text-gray-700 mb-1">State Code</label>
-              <input
-                type="text"
-                value={bill.supplyStateCode || ''}
-                onChange={(e) => updateBill({ supplyStateCode: e.target.value })}
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500"
-              />
-            </div>
+            {settings?.preferences?.showStateCode !== false && (
+              <div className="w-1/3">
+                <label className="block text-xs font-medium text-gray-700 mb-1">State Code</label>
+                <input
+                  type="text"
+                  value={bill.supplyStateCode || ''}
+                  onChange={(e) => updateBill({ supplyStateCode: e.target.value })}
+                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500"
+                />
+              </div>
+            )}
           </div>
           
           <div className="flex gap-3 mb-3">
@@ -217,15 +236,17 @@ export function BillForm() {
                 className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500"
               />
             </div>
-            <div className="flex-1">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Transport / Ref</label>
-              <input
-                type="text"
-                value={bill.transportRef || ''}
-                onChange={(e) => updateBill({ transportRef: e.target.value })}
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500"
-              />
-            </div>
+            {settings?.preferences?.showTransportReference !== false && (
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Transport / Ref</label>
+                <input
+                  type="text"
+                  value={bill.transportRef || ''}
+                  onChange={(e) => updateBill({ transportRef: e.target.value })}
+                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500"
+                />
+              </div>
+            )}
           </div>
           
           {settings?.preferences?.showEwayBill && (
@@ -399,6 +420,7 @@ export function BillForm() {
         isOpen={isDrawerOpen} 
         onClose={() => setIsDrawerOpen(false)} 
         onAdd={handleAddItem} 
+        showHsnCode={settings?.preferences?.showHsnCode !== false}
       />
 
       <AnimatePresence>
@@ -409,6 +431,82 @@ export function BillForm() {
           />
         )}
       </AnimatePresence>
+
+      {/* App Preferences Slider / Drawer Overlay */}
+      {isPrefOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-xs">
+          <div className="w-80 max-w-full h-full bg-white shadow-2xl flex flex-col p-4 animate-in slide-in-from-right duration-200">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div className="flex items-center space-x-2 text-blue-600 font-semibold">
+                <Sliders className="w-5 h-5" />
+                <span>App Preferences</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPrefOpen(false)}
+                className="p-1 rounded-lg text-gray-500 hover:bg-gray-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto py-4 space-y-2">
+              <p className="text-xs text-gray-500 mb-4">
+                Toggle options to show/hide fields on the bill form in real-time.
+              </p>
+
+              {[
+                { key: 'showEwayBill' as const, label: 'Show E-way Bill Field', icon: <FileText className="w-5 h-5 text-gray-500" /> },
+                { key: 'showBillOfSupply' as const, label: 'Bill of Supply', icon: <Receipt className="w-5 h-5 text-gray-500" /> },
+                { key: 'showStateCode' as const, label: 'State Code', icon: <MapPin className="w-5 h-5 text-gray-500" /> },
+                { key: 'showTransportReference' as const, label: 'Transport Reference', icon: <Truck className="w-5 h-5 text-gray-500" /> },
+                { key: 'showHsnCode' as const, label: 'HSN Code', icon: <Hash className="w-5 h-5 text-gray-500" /> },
+              ].map(item => (
+                <div key={item.key} className="flex items-center justify-between py-3 border-b border-gray-50">
+                  <div className="flex items-center space-x-3">
+                    {item.icon}
+                    <span className="text-sm font-medium text-gray-700">{item.label}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      hapticFeedback('light');
+                      if (settings) {
+                        const newVal = !(settings.preferences[item.key] ?? true);
+                        const newSettings = {
+                          ...settings,
+                          preferences: {
+                            ...settings.preferences,
+                            [item.key]: newVal
+                          }
+                        };
+                        setSettings(newSettings);
+                        await saveSettingsLocally(newSettings);
+                      }
+                    }}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${(settings?.preferences[item.key] ?? true) ? 'bg-blue-600' : 'bg-gray-200'}`}
+                    role="switch"
+                    aria-checked={settings?.preferences[item.key] ?? true}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${(settings?.preferences[item.key] ?? true) ? 'translate-x-5' : 'translate-x-0'}`}
+                    />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsPrefOpen(false)}
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

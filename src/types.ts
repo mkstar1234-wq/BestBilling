@@ -27,6 +27,10 @@ export interface AppSettings {
   preferences: {
     showEwayBill: boolean;
     darkMode?: boolean;
+    showBillOfSupply?: boolean;
+    showStateCode?: boolean;
+    showTransportReference?: boolean;
+    showHsnCode?: boolean;
   };
   updatedAt: number;
   syncStatus: 'synced' | 'pending_sync';
