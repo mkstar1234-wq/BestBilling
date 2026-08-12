@@ -12,7 +12,7 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'adarsh-icon.png', 'adarsh-icon-192.png', 'masked-icon.svg'],
+        includeAssets: ['favicon.ico', 'adarsh-icon.png', 'adarsh-icon.png', 'masked-icon.svg'],
         manifest: {
           name: 'Composition Billing App',
           short_name: 'BillingApp',
@@ -24,7 +24,7 @@ export default defineConfig(() => {
           start_url: '.',
           icons: [
             {
-              src: './adarsh-icon-192.png',
+              src: './adarsh-icon.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any'
