@@ -172,21 +172,38 @@ export function BillForm({ editingBill, onClearEdit }: { editingBill?: Bill | nu
   const handleClosePreview = async () => {
     setSavedBill(null); if (onClearEdit) onClearEdit();
     // Reset form after successful save
-    const allBills = await getLocalBills(); // Refresh to include just saved bill
+    const [allBills, localSettings] = await Promise.all([
+      getLocalBills(),
+      getLocalSettings()
+    ]);
+    const currentSettings = localSettings || settings;
+    if (localSettings) {
+      setSettings(localSettings);
+    }
+
     const nextInv = getNextInvoiceNumber(
       allBills, 
-      settings?.invoice.prefix || 'INV-', 
-      settings?.invoice.startNumber || 1
+      currentSettings?.invoice?.prefix || 'INV-', 
+      currentSettings?.invoice?.startNumber || 1
     );
-    
+        
     setBill({
       invoiceNumber: nextInv,
       date: new Date().toISOString().split('T')[0],
-      customerName: settings?.preferences?.defaultBuyerName || '',
+      customerName: currentSettings?.preferences?.defaultBuyerName || '',
       customerDetails: '',
       items: [],
       discount: 0,
       roundOff: 0,
+      placeOfSupply: currentSettings?.invoice?.defaultPlaceOfSupply || '',
+      supplyStateCode: currentSettings?.invoice?.defaultStateCode || '',
+      customerState: currentSettings?.invoice?.defaultBuyerState || '',
+      customerStateCode: currentSettings?.invoice?.defaultBuyerState ? INDIAN_STATES[currentSettings.invoice.defaultBuyerState] : '',
+      customerCity: currentSettings?.invoice?.defaultBuyerCity || '',
+      modeOfPay: currentSettings?.preferences?.defaultModeOfPay || '',
+      transportRef: '',
+      ewayBillNo: '',
+      dispatchThrough: ''
     });
   };
 
