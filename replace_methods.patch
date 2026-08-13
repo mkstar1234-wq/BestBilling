@@ -1,0 +1,46 @@
+--- src/components/BillForm.tsx
++++ src/components/BillForm.tsx
+@@ -95,14 +95,20 @@
+   };
+ 
+-  const handleAddItem = (itemData: { description: string; hsnSac: string; quantity: number; rate: number; per: string }) => {
+-    const newItem: InvoiceItem = {
+-      id: crypto.randomUUID(),
+-      ...itemData,
+-      amount: calculateItemAmount(itemData.quantity, itemData.rate),
+-    };
+-    updateBill({ items: [...(bill.items || []), newItem] });
+-    setIsDrawerOpen(false);
+-  };
+-
+-  const handleDeleteItem = (id: string) => {
+-    updateBill({ items: (bill.items || []).filter(item => item.id !== id) });
+-  };
++  const handleAddNewRow = () => {
++    const newItem: InvoiceItem = {
++      id: crypto.randomUUID(),
++      description: '',
++      hsnSac: '',
++      quantity: 1,
++      rate: 0,
++      per: 'PCS',
++      amount: 0,
++    };
++    updateBill({ items: [...(bill.items || []), newItem] });
++  };
++
++  const updateItemField = (id: string, field: keyof InvoiceItem, value: any) => {
++    const updatedItems = (bill.items || []).map(item => {
++      if (item.id === id) {
++        const updatedItem = { ...item, [field]: value };
++        updatedItem.amount = calculateItemAmount(updatedItem.quantity, updatedItem.rate);
++        return updatedItem;
++      }
++      return item;
++    });
++    updateBill({ items: updatedItems });
++  };
++
++  const handleDeleteItem = (id: string) => {
++    updateBill({ items: (bill.items || []).filter(item => item.id !== id) });
++  };

@@ -100,7 +100,7 @@ export function PreviewModal({ bill, onClose }: PreviewModalProps) {
 
         {/* Content (HTML Replica) */}
         <div className="flex-1 bg-gray-100 overflow-y-auto p-2 sm:p-4 relative">
-          <div className="bg-white w-full max-w-3xl mx-auto border border-gray-300 shadow-sm text-black font-sans text-[10px] leading-tight flex flex-col min-h-max pb-4">
+          <div className="print-safe-preview bg-white w-full max-w-3xl mx-auto border border-gray-300 shadow-sm text-black font-sans text-[10px] leading-tight flex flex-col min-h-max pb-4">
             {/* Invoice Header */}
             <div className="text-center pt-2 px-2">
               <p className="text-[7px] uppercase tracking-wider mb-1">COMPOSITION TAXABLE PERSON, NOT ELIGIBLE TO COLLECT TAX ON SUPPLIES</p>
@@ -187,9 +187,9 @@ export function PreviewModal({ bill, onClose }: PreviewModalProps) {
                       <td className="p-1 border-r border-black">{item.description}</td>
                       <td className="p-1 border-r border-black text-center">{item.hsnSac}</td>
                       <td className="p-1 border-r border-black text-right">{item.quantity}</td>
-                      <td className="p-1 border-r border-black text-right">{item.rate.toFixed(2)}</td>
+                      <td className="p-1 border-r border-black text-right">{Number(item.rate || 0).toFixed(2)}</td>
                       <td className="p-1 border-r border-black text-center">{item.per || 'PCS'}</td>
-                      <td className="p-1 text-right border-black border-l-0">{item.amount.toFixed(2)}</td>
+                      <td className="p-1 text-right border-black border-l-0">{Number(item.amount || 0).toFixed(2)}</td>
                     </tr>
                   ))}
                   {/* Fill empty space logic is tricky in HTML, we will just use min-height on tbody and let vertical lines stretch via cell borders if we added empty rows, but for HTML rendering flex-1 is enough. Let's just make the last row stretch. */}
@@ -225,9 +225,9 @@ export function PreviewModal({ bill, onClose }: PreviewModalProps) {
               <div className="w-[48px] border-l border-black"></div>
               <div className="w-[32px] border-l border-black"></div>
               <div className="w-[64px] text-right p-1 border-l border-black font-bold">
-                {bill.discount ? <div className="mb-0.5 font-normal">-{bill.discount.toFixed(2)}</div> : null}
-                {bill.roundOff ? <div className="mb-0.5 font-normal">{bill.roundOff > 0 ? '+' : ''}{bill.roundOff.toFixed(2)}</div> : null}
-                <div>{bill.netAmount.toFixed(2)}</div>
+                {bill.discount ? <div className="mb-0.5 font-normal">-{Number(bill.discount || 0).toFixed(2)}</div> : null}
+                {bill.roundOff ? <div className="mb-0.5 font-normal">{bill.roundOff > 0 ? '+' : ''}{Number(bill.roundOff || 0).toFixed(2)}</div> : null}
+                <div>{Number(bill.netAmount || 0).toFixed(2)}</div>
               </div>
             </div>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { RefreshCw, Search, FileText, Eye, Share2, Download } from 'lucide-react';
+import { RefreshCw, Search, FileText, Eye, Share2, Download, Edit2, Trash2 } from 'lucide-react';
 import { Bill } from '../types';
 import { getLocalBills, pullFromFirebase, deleteBillLocally, getLocalSettings } from '../lib/offlineSync';
 import { SwipeableItem } from './SwipeableItem';
@@ -10,7 +10,7 @@ import { PreviewModal } from './PreviewModal';
 import { generateInvoicePDF, generateBulkInvoicePDF } from '../lib/pdfGenerator';
 import { sharePDF, downloadBlob } from '../lib/shareUtils';
 
-export function BillHistory() {
+export function BillHistory({ onEdit }: { onEdit?: (bill: Bill) => void }) {
   const [bills, setBills] = useState<Bill[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,7 +21,9 @@ export function BillHistory() {
   const [isDownloadingId, setIsDownloadingId] = useState<string | null>(null);
   const [isSharingAll, setIsSharingAll] = useState(false);
   const [displayLimit, setDisplayLimit] = useState(20);
-  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const [billToDelete, setBillToDelete] = useState<string | null>(null);
+
+  const observer = useRef<IntersectionObserver | null>(null);
 
   const loadBills = useCallback(async () => {
     const localBills = await getLocalBills();
@@ -55,9 +57,15 @@ export function BillHistory() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    await deleteBillLocally(id);
-    setBills(prev => prev.filter(b => b.id !== id));
+  const handleDelete = (id: string) => {
+    setBillToDelete(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!billToDelete) return;
+    await deleteBillLocally(billToDelete);
+    setBills(prev => prev.filter(b => b.id !== billToDelete));
+    setBillToDelete(null);
   };
 
   const handleView = (bill: Bill) => {
@@ -214,35 +222,23 @@ export function BillHistory() {
     setDisplayLimit(20);
   }, [searchTerm, fromDate, toDate]);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      const first = entries[0];
-      if (first.isIntersecting) {
-        setDisplayLimit((prev) => prev + 20);
-      }
-    }, {
-      root: null,
-      rootMargin: '100px',
-      threshold: 0.1
-    });
-
-    const currentRef = loadMoreRef.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
-
-    return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
-    };
-  }, []);
-
   const visibleBills = useMemo(() => {
     return filteredBills.slice(0, displayLimit);
   }, [filteredBills, displayLimit]);
 
   const hasMore = displayLimit < filteredBills.length;
+
+  const lastElementRef = useCallback((node: HTMLDivElement) => {
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setDisplayLimit(prev => prev + 20);
+      }
+    }, {
+      rootMargin: '100px'
+    });
+    if (node) observer.current.observe(node);
+  }, [hasMore]);
 
   const totalSales = useMemo(() => {
     return filteredBills.reduce((sum, bill) => sum + bill.netAmount, 0);
@@ -296,7 +292,7 @@ export function BillHistory() {
         <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex flex-col gap-3 shadow-sm">
           <div className="flex justify-between items-center">
             <span className="text-blue-800 font-bold text-sm">Total Sales</span>
-            <span className="text-blue-900 font-extrabold text-lg">₹{totalSales.toFixed(2)}</span>
+            <span className="text-blue-900 font-extrabold text-lg">₹{Number(totalSales || 0).toFixed(2)}</span>
           </div>
           {filteredBills.length > 0 && (
             <div className="flex gap-2">
@@ -351,7 +347,23 @@ export function BillHistory() {
                   <SwipeableItem onDelete={() => handleDelete(bill.id)}>
                     <div className="flex flex-col w-full">
                       {/* Top Action Bar for Bill Card */}
-                      <div className="flex justify-end gap-2 mb-2">
+                      <div className="flex justify-end gap-2 mb-2 flex-wrap">
+                        <button 
+                          onClick={() => {
+                            if (onEdit) onEdit(bill);
+                          }}
+                          className="flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-100 px-3 py-1.5 rounded-full active:bg-indigo-200 transition-colors"
+                        >
+                          <Edit2 size={14} />
+                          Edit
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(bill.id)}
+                          className="flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-100 px-3 py-1.5 rounded-full active:bg-red-200 transition-colors"
+                        >
+                          <Trash2 size={14} />
+                          Delete
+                        </button>
                         <button 
                           onClick={() => handleView(bill)}
                           className="flex items-center gap-1.5 text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full active:bg-blue-100 transition-colors"
@@ -397,7 +409,7 @@ export function BillHistory() {
                         </div>
                         <div className="text-right flex flex-col items-end justify-center">
                           <span className="font-extrabold text-gray-900 text-base">
-                            ₹{bill.netAmount.toFixed(2)}
+                            ₹{Number(bill.netAmount || 0).toFixed(2)}
                           </span>
                           {bill.syncStatus === 'pending_sync' ? (
                             <span className="text-[10px] text-amber-500 font-bold tracking-wide mt-1 uppercase">Pending</span>
@@ -413,7 +425,7 @@ export function BillHistory() {
             </AnimatePresence>
 
             {hasMore && (
-              <div ref={loadMoreRef} className="py-6 flex justify-center items-center">
+              <div ref={lastElementRef} className="py-6 flex justify-center items-center">
                 <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                 <span className="ml-2 text-sm text-gray-500 font-medium">Loading more bills...</span>
               </div>
@@ -434,6 +446,38 @@ export function BillHistory() {
             bill={selectedBill} 
             onClose={() => setSelectedBill(null)} 
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {billToDelete && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl"
+            >
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Bill?</h3>
+              <p className="text-sm text-gray-500 mb-6">
+                Are you sure you want to delete this bill? / क्या आप सच में इस बिल को डिलीट करना चाहते हैं?
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setBillToDelete(null)}
+                  className="px-4 py-2 text-sm font-bold text-gray-700 bg-gray-100 rounded-xl active:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="px-4 py-2 text-sm font-bold text-white bg-red-600 rounded-xl active:bg-red-700 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

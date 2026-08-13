@@ -48,3 +48,17 @@
   color: #f9fafb !important;
   border-color: #4b5563 !important;
 }
+
+/* ==========================================================================
+   FORCE LIGHT MODE FOR INVOICE PREVIEW (Prevents Dark Mode Bleed)
+   ========================================================================== */
+.dark .print-safe-preview,
+.dark .print-safe-preview.bg-white {
+  background-color: #ffffff !important;
+}
+
+.dark .print-safe-preview,
+.dark .print-safe-preview * {
+  color: #000000 !important;
+  border-color: #000000 !important;
+}

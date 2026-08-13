@@ -98,16 +98,16 @@ export function formatInvoiceDate(input: string | number | Date): FormattedDate 
  * 1.3 Mathematical Calculations
  */
 export function calculateItemAmount(quantity: number, rate: number): number {
-  return Number((quantity * rate).toFixed(2));
+  return Number((Number(quantity || 0) * Number(rate || 0)).toFixed(2));
 }
 
 export function calculateTotalAmount(items: InvoiceItem[]): number {
   const total = items.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
-  return Number(total.toFixed(2));
+  return Number(Number(total || 0).toFixed(2));
 }
 
 export function calculateNetAmount(totalAmount: number, discount: number, roundOff: number): number {
-  return Number((totalAmount - discount + roundOff).toFixed(2));
+  return Number((Number(totalAmount || 0) - Number(discount || 0) + Number(roundOff || 0)).toFixed(2));
 }
 
 /**

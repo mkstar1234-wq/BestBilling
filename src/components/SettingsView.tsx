@@ -32,6 +32,7 @@ export function SettingsView() {
       showStateCode: true,
       showTransportReference: true,
       showHsnCode: true,
+      defaultModeOfPay: '',
     },
     updatedAt: Date.now(),
     syncStatus: 'synced',
@@ -386,6 +387,30 @@ export function SettingsView() {
             <Smartphone className="text-gray-400 mr-2" size={18} />
             <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">App Preferences</h2>
           </div>
+
+          <div className="mb-6">
+            <label className="block text-xs font-medium text-gray-700 mb-1">Default Buyer Name</label>
+            <input
+              type="text"
+              value={settings.preferences.defaultBuyerName || ''}
+              onChange={(e) => updatePreferences({ defaultBuyerName: e.target.value })}
+              className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500"
+              placeholder="e.g., Cash Customer, General"
+            />
+            <p className="text-xs text-gray-500 mt-1">This will automatically fill in new bills.</p>
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-xs font-medium text-gray-700 mb-1">Default Mode of Payment</label>
+            <input
+              type="text"
+              value={settings.preferences.defaultModeOfPay || ''}
+              onChange={(e) => updatePreferences({ defaultModeOfPay: e.target.value })}
+              className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500"
+              placeholder="e.g., Cash, UPI, Bank Transfer"
+            />
+            <p className="text-xs text-gray-500 mt-1">This will automatically fill in new bills.</p>
+          </div>
           
           <div className="flex items-center justify-between">
             <div>
@@ -411,8 +436,8 @@ export function SettingsView() {
 
           <div className="flex items-center justify-between mt-6">
             <div>
-              <h3 className="text-sm font-medium text-gray-900">Bill of Supply</h3>
-              <p className="text-xs text-gray-500">Show 'Bill of Supply' badge on the invoice</p>
+              <h3 className="text-sm font-medium text-gray-900">Place of Supply</h3>
+              <p className="text-xs text-gray-500">Show 'Place of Supply' field on the invoice</p>
             </div>
             <button
               type="button"

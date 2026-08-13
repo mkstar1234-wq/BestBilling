@@ -1,16 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Plus, Check, Receipt, Sliders, X, FileText, MapPin, Truck, Hash } from 'lucide-react';
+import { Plus, Check, Receipt, Sliders, X, FileText, MapPin, Truck, Hash, Trash2 } from 'lucide-react';
 import { Bill, InvoiceItem, SupplierProfile, AppSettings } from '../types';
 import { calculateItemAmount, calculateTotalAmount, calculateNetAmount, getNextInvoiceNumber } from '../lib/billingLogic';
 import { hapticFeedback } from '../lib/haptics';
-import { SwipeableItem } from './SwipeableItem';
-import { AddItemDrawer } from './AddItemDrawer';
 import { PreviewModal } from './PreviewModal';
 import { saveBillLocally, getLocalSettings, getLocalBills, saveSettingsLocally } from '../lib/offlineSync';
 import { AnimatePresence } from 'motion/react';
 import { INDIAN_STATES } from '../lib/states';
 
-export function BillForm() {
+export function BillForm({ editingBill, onClearEdit }: { editingBill?: Bill | null, onClearEdit?: () => void }) {
   const [bill, setBill] = useState<Partial<Bill>>({
     invoiceNumber: '',
     date: new Date().toISOString().split('T')[0],
@@ -21,7 +19,7 @@ export function BillForm() {
     roundOff: 0,
   });
 
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  
   const [isPrefOpen, setIsPrefOpen] = useState(false);
   const [totalAmount, setTotalAmount] = useState(0);
   const [netAmount, setNetAmount] = useState(0);
@@ -32,29 +30,54 @@ export function BillForm() {
   useEffect(() => {
     async function loadInitialData() {
       const localSettings = await getLocalSettings();
+      if (localSettings) {
+        setSettings(localSettings);
+      }
+      
+      if (editingBill) {
+        setBill(editingBill);
+        return;
+      }
+
       const localBills = await getLocalBills();
       
       let nextInvNumber = 'INV-0001';
       if (localSettings) {
-        setSettings(localSettings);
         nextInvNumber = getNextInvoiceNumber(localBills, localSettings.invoice.prefix, localSettings.invoice.startNumber);
         
-        setBill(prev => ({
-          ...prev,
+        setBill({
           invoiceNumber: nextInvNumber,
-          placeOfSupply: prev.placeOfSupply || localSettings.invoice.defaultPlaceOfSupply || '',
-          supplyStateCode: prev.supplyStateCode || localSettings.invoice.defaultStateCode || '',
-          customerState: prev.customerState || localSettings.invoice.defaultBuyerState || '',
-          customerStateCode: prev.customerStateCode || (localSettings.invoice.defaultBuyerState ? INDIAN_STATES[localSettings.invoice.defaultBuyerState] : ''),
-          customerCity: prev.customerCity || localSettings.invoice.defaultBuyerCity || ''
-        }));
+          date: new Date().toISOString().split('T')[0],
+          customerName: localSettings.preferences?.defaultBuyerName || '',
+          customerDetails: '',
+          items: [],
+          discount: 0,
+          roundOff: 0,
+          placeOfSupply: localSettings.invoice.defaultPlaceOfSupply || '',
+          supplyStateCode: localSettings.invoice.defaultStateCode || '',
+          customerState: localSettings.invoice.defaultBuyerState || '',
+          customerStateCode: localSettings.invoice.defaultBuyerState ? INDIAN_STATES[localSettings.invoice.defaultBuyerState] : '',
+          customerCity: localSettings.invoice.defaultBuyerCity || '',
+          modeOfPay: localSettings.preferences?.defaultModeOfPay || '',
+          transportRef: '',
+          ewayBillNo: '',
+          dispatchThrough: ''
+        });
       } else {
         nextInvNumber = getNextInvoiceNumber(localBills, 'INV-', 1);
-        setBill(prev => ({ ...prev, invoiceNumber: nextInvNumber }));
+        setBill({ 
+          invoiceNumber: nextInvNumber,
+          date: new Date().toISOString().split('T')[0],
+          customerName: '',
+          customerDetails: '',
+          items: [],
+          discount: 0,
+          roundOff: 0
+        });
       }
     }
     loadInitialData();
-  }, []);
+  }, [editingBill]);
 
   // Recalculate totals whenever items, discount, or roundOff change
   useEffect(() => {
@@ -68,14 +91,29 @@ export function BillForm() {
     setBill(prev => ({ ...prev, ...updates }));
   };
 
-  const handleAddItem = (itemData: { description: string; hsnSac: string; quantity: number; rate: number; per: string }) => {
+  const handleAddNewRow = () => {
     const newItem: InvoiceItem = {
       id: crypto.randomUUID(),
-      ...itemData,
-      amount: calculateItemAmount(itemData.quantity, itemData.rate),
+      description: '',
+      hsnSac: '',
+      quantity: 0,
+      rate: 0,
+      per: 'PCS',
+      amount: 0,
     };
     updateBill({ items: [...(bill.items || []), newItem] });
-    setIsDrawerOpen(false);
+  };
+
+  const updateItemField = (id: string, field: keyof InvoiceItem, value: string | number) => {
+    const updatedItems = (bill.items || []).map(item => {
+      if (item.id === id) {
+        const updatedItem = { ...item, [field]: value };
+        updatedItem.amount = calculateItemAmount(Number(updatedItem.quantity), Number(updatedItem.rate));
+        return updatedItem;
+      }
+      return item;
+    });
+    updateBill({ items: updatedItems });
   };
 
   const handleDeleteItem = (id: string) => {
@@ -89,7 +127,7 @@ export function BillForm() {
 
     try {
       const fullBill: Bill = {
-        id: crypto.randomUUID(),
+        id: bill.id || crypto.randomUUID(),
         invoiceNumber: bill.invoiceNumber,
         date: bill.date || new Date().toISOString(),
         
@@ -110,7 +148,7 @@ export function BillForm() {
         discount: bill.discount || 0,
         roundOff: bill.roundOff || 0,
         netAmount,
-        createdAt: Date.now(),
+        createdAt: bill.createdAt || Date.now(),
         updatedAt: Date.now(),
         syncStatus: 'pending_sync'
       };
@@ -132,7 +170,7 @@ export function BillForm() {
   };
 
   const handleClosePreview = async () => {
-    setSavedBill(null);
+    setSavedBill(null); if (onClearEdit) onClearEdit();
     // Reset form after successful save
     const allBills = await getLocalBills(); // Refresh to include just saved bill
     const nextInv = getNextInvoiceNumber(
@@ -144,7 +182,7 @@ export function BillForm() {
     setBill({
       invoiceNumber: nextInv,
       date: new Date().toISOString().split('T')[0],
-      customerName: '',
+      customerName: settings?.preferences?.defaultBuyerName || '',
       customerDetails: '',
       items: [],
       discount: 0,
@@ -159,12 +197,7 @@ export function BillForm() {
         <div className="flex items-center">
           <Receipt className="text-blue-600 mr-2 w-6 h-6" />
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-gray-900">New Invoice</h1>
-            {settings?.preferences?.showBillOfSupply && (
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
-                Bill of Supply
-              </span>
-            )}
+            <h1 className="text-xl font-bold text-gray-900">{editingBill ? 'Edit Invoice' : 'New Invoice'}</h1>
           </div>
         </div>
         <button
@@ -204,15 +237,17 @@ export function BillForm() {
           </div>
           
           <div className="flex gap-3 mb-3">
-            <div className="flex-1">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Place of Supply</label>
-              <input
-                type="text"
-                value={bill.placeOfSupply || ''}
-                onChange={(e) => updateBill({ placeOfSupply: e.target.value })}
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500"
-              />
-            </div>
+            {settings?.preferences?.showBillOfSupply !== false && (
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Place of Supply</label>
+                <input
+                  type="text"
+                  value={bill.placeOfSupply || ''}
+                  onChange={(e) => updateBill({ placeOfSupply: e.target.value })}
+                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500"
+                />
+              </div>
+            )}
             {settings?.preferences?.showStateCode !== false && (
               <div className="w-1/3">
                 <label className="block text-xs font-medium text-gray-700 mb-1">State Code</label>
@@ -331,46 +366,89 @@ export function BillForm() {
         <section className="p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Line Items</h2>
+          </div>
+
+          <div className="space-y-4">
+            {(bill.items || []).map((item) => (
+              <div key={item.id} className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm relative group">
+                <button
+                  onClick={() => handleDeleteItem(item.id)}
+                  className="absolute -top-2 -right-2 bg-red-100 text-red-600 p-1.5 rounded-full shadow-sm"
+                >
+                  <Trash2 size={14} />
+                </button>
+                <div className="space-y-3 mt-1">
+                  <div>
+                    <input
+                      type="text"
+                      value={item.description}
+                      onChange={(e) => updateItemField(item.id, 'description', e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500 font-medium"
+                      placeholder="Item Description"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    {settings?.preferences?.showHsnCode !== false && (
+                      <div className="flex-1">
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">HSN/SAC</label>
+                        <input
+                          type="text"
+                          value={item.hsnSac}
+                          onChange={(e) => updateItemField(item.id, 'hsnSac', e.target.value)}
+                          className="w-full px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500 text-sm"
+                          placeholder="Code"
+                        />
+                      </div>
+                    )}
+                    <div className="w-16">
+                      <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Qty</label>
+                      <input
+                        type="number"
+                        value={item.quantity || ''}
+                        onChange={(e) => updateItemField(item.id, 'quantity', e.target.value)}
+                        className="w-full px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500 text-sm"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="w-24">
+                      <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Rate (₹)</label>
+                      <input
+                        type="number"
+                        value={item.rate || ''}
+                        onChange={(e) => updateItemField(item.id, 'rate', e.target.value)}
+                        className="w-full px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500 text-sm"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="w-16">
+                      <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Per</label>
+                      <input
+                        type="text"
+                        value={item.per}
+                        onChange={(e) => updateItemField(item.id, 'per', e.target.value)}
+                        className="w-full px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500 text-sm uppercase"
+                        placeholder="PCS"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end border-t border-gray-100 pt-2 mt-2">
+                    <span className="text-xs text-gray-500 mr-2">Amount:</span>
+                    <span className="font-bold text-gray-900">₹{Number(item.amount || 0).toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+            
             <button
               onClick={() => {
                 hapticFeedback('light');
-                setIsDrawerOpen(true);
+                handleAddNewRow();
               }}
-              className="flex items-center text-sm font-semibold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full active:bg-blue-100 transition-colors"
+              className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-blue-600 font-bold flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
             >
-              <Plus size={16} className="mr-1" /> Add
+              <Plus size={18} /> Add New Row
             </button>
           </div>
-
-          {(!bill.items || bill.items.length === 0) ? (
-            <div className="text-center py-10 bg-white rounded-xl border border-dashed border-gray-300">
-              <p className="text-gray-400 text-sm">No items added yet</p>
-              <button
-                onClick={() => setIsDrawerOpen(true)}
-                className="mt-2 text-blue-600 font-medium text-sm"
-              >
-                Tap here to add item
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {bill.items.map((item) => (
-                <SwipeableItem key={item.id} onDelete={() => handleDeleteItem(item.id)}>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{item.description}</h3>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {item.quantity} × ₹{item.rate.toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-bold text-gray-900">₹{item.amount.toFixed(2)}</span>
-                    </div>
-                  </div>
-                </SwipeableItem>
-              ))}
-            </div>
-          )}
         </section>
 
         {/* Section: Summary Tweaks (Discount/Roundoff) */}
@@ -403,25 +481,18 @@ export function BillForm() {
         <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex flex-col">
             <span className="text-xs text-gray-500 font-medium">Net Payable</span>
-            <span className="text-xl font-extrabold text-gray-900">₹{netAmount.toFixed(2)}</span>
+            <span className="text-xl font-extrabold text-gray-900">₹{Number(netAmount || 0).toFixed(2)}</span>
           </div>
           <button
             onClick={handleSave}
             disabled={!bill.items?.length}
             className="flex items-center justify-center bg-blue-600 text-white font-bold px-8 py-3 rounded-full active:bg-blue-700 shadow-lg disabled:opacity-50 disabled:active:bg-blue-600 transition-all"
           >
-            <Check size={20} className="mr-2" /> Save Bill
+            <Check size={20} className="mr-2" /> {editingBill ? 'Update Bill' : 'Save Bill'}
           </button>
         </div>
       </div>
 
-      {/* Bottom Sheet Modal */}
-      <AddItemDrawer 
-        isOpen={isDrawerOpen} 
-        onClose={() => setIsDrawerOpen(false)} 
-        onAdd={handleAddItem} 
-        showHsnCode={settings?.preferences?.showHsnCode !== false}
-      />
 
       <AnimatePresence>
         {savedBill && (
@@ -457,7 +528,7 @@ export function BillForm() {
 
               {[
                 { key: 'showEwayBill' as const, label: 'Show E-way Bill Field', icon: <FileText className="w-5 h-5 text-gray-500" /> },
-                { key: 'showBillOfSupply' as const, label: 'Bill of Supply', icon: <Receipt className="w-5 h-5 text-gray-500" /> },
+                { key: 'showBillOfSupply' as const, label: 'Place of Supply', icon: <MapPin className="w-5 h-5 text-gray-500" /> },
                 { key: 'showStateCode' as const, label: 'State Code', icon: <MapPin className="w-5 h-5 text-gray-500" /> },
                 { key: 'showTransportReference' as const, label: 'Transport Reference', icon: <Truck className="w-5 h-5 text-gray-500" /> },
                 { key: 'showHsnCode' as const, label: 'HSN Code', icon: <Hash className="w-5 h-5 text-gray-500" /> },

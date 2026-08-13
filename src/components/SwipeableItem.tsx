@@ -4,37 +4,19 @@ import { hapticFeedback } from '../lib/haptics';
 import { useState, ReactNode } from 'react';
 
 interface SwipeableItemProps {
-  onDelete: () => void;
+  onDelete: () => void | Promise<void>;
   children: ReactNode;
   key?: string | number;
 }
 
 export function SwipeableItem({ onDelete, children }: SwipeableItemProps) {
-  const [isDeleting, setIsDeleting] = useState(false);
-
   const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     // If swiped left past threshold
     if (info.offset.x < -80) {
       hapticFeedback('medium');
-      setIsDeleting(true);
-      setTimeout(() => {
-        onDelete();
-      }, 200); // Wait for exit animation
+      onDelete();
     }
   };
-
-  if (isDeleting) {
-    return (
-      <motion.div
-        initial={{ opacity: 1, height: 'auto' }}
-        animate={{ opacity: 0, height: 0, scale: 0.9 }}
-        transition={{ duration: 0.2 }}
-        className="overflow-hidden"
-      >
-        {children}
-      </motion.div>
-    );
-  }
 
   return (
     <div className="relative overflow-hidden bg-red-50 mb-2 rounded-xl border border-gray-100 shadow-sm">

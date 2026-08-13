@@ -31,6 +31,8 @@ export interface AppSettings {
     showStateCode?: boolean;
     showTransportReference?: boolean;
     showHsnCode?: boolean;
+    defaultModeOfPay?: string;
+    defaultBuyerName?: string;
   };
   updatedAt: number;
   syncStatus: 'synced' | 'pending_sync';

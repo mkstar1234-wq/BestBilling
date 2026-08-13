@@ -1,0 +1,69 @@
+--- src/components/BillHistory.tsx
++++ src/components/BillHistory.tsx
+@@ -23,8 +23,8 @@
+   const [displayLimit, setDisplayLimit] = useState(20);
+   const [billToDelete, setBillToDelete] = useState<string | null>(null);
+ 
+-  const loadMoreRef = useRef<HTMLDivElement>(null);
++  const observer = useRef<IntersectionObserver | null>(null);
+ 
+   const loadBills = useCallback(async () => {
+     const localBills = await getLocalBills();
+@@ -222,29 +222,6 @@
+     setDisplayLimit(20);
+   }, [searchTerm, fromDate, toDate]);
+ 
+-  useEffect(() => {
+-    const observer = new IntersectionObserver((entries) => {
+-      const first = entries[0];
+-      if (first.isIntersecting) {
+-        setDisplayLimit((prev) => prev + 20);
+-      }
+-    }, {
+-      root: null,
+-      rootMargin: '100px',
+-      threshold: 0.1
+-    });
+-
+-    const currentRef = loadMoreRef.current;
+-    if (currentRef) {
+-      observer.observe(currentRef);
+-    }
+-
+-    return () => {
+-      if (currentRef) {
+-        observer.unobserve(currentRef);
+-      }
+-    };
+-  }, []);
+ 
+   const visibleBills = useMemo(() => {
+     return filteredBills.slice(0, displayLimit);
+@@ -252,6 +229,18 @@
+ 
+   const hasMore = displayLimit < filteredBills.length;
+ 
++  const lastElementRef = useCallback((node: HTMLDivElement) => {
++    if (observer.current) observer.current.disconnect();
++    observer.current = new IntersectionObserver(entries => {
++      if (entries[0].isIntersecting && hasMore) {
++        setDisplayLimit(prev => prev + 20);
++      }
++    }, {
++      rootMargin: '100px'
++    });
++    if (node) observer.current.observe(node);
++  }, [hasMore]);
++
+   const totalSales = useMemo(() => {
+     return filteredBills.reduce((sum, bill) => sum + bill.netAmount, 0);
+   }, [filteredBills]);
+@@ -437,7 +426,7 @@
+             </AnimatePresence>
+ 
+             {hasMore && (
+-              <div ref={loadMoreRef} className="py-6 flex justify-center items-center">
++              <div ref={lastElementRef} className="py-6 flex justify-center items-center">
+                 <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                 <span className="ml-2 text-sm text-gray-500 font-medium">Loading more bills...</span>
+               </div>

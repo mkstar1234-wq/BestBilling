@@ -200,9 +200,9 @@ async function generateInvoicePage(doc: jsPDF, bill: Bill, supplier: SupplierPro
       item.description,
       item.hsnSac || '',
       isDiscount ? '' : `${item.quantity}`,
-      isDiscount ? '' : `${item.rate.toFixed(2)}`,
+      isDiscount ? '' : `${Number(item.rate || 0).toFixed(2)}`,
       item.per || 'PCS',
-      item.amount.toFixed(2)
+      Number(item.amount || 0).toFixed(2)
     ];
   });
 
@@ -272,21 +272,21 @@ async function generateInvoicePage(doc: jsPDF, bill: Bill, supplier: SupplierPro
   if (bill.discount) {
     doc.setFont('helvetica', 'normal');
     doc.text('Less: Discount', pageWidth - m - 30, currentTotalY, { align: 'right' });
-    doc.text(`-${bill.discount.toFixed(2)}`, pageWidth - m - 2, currentTotalY, { align: 'right' });
+    doc.text(`-${Number(bill.discount || 0).toFixed(2)}`, pageWidth - m - 2, currentTotalY, { align: 'right' });
     currentTotalY += 6;
   }
   
   if (bill.roundOff) {
     doc.setFont('helvetica', 'normal');
     doc.text('Add: Round Off', pageWidth - m - 30, currentTotalY, { align: 'right' });
-    doc.text(`${bill.roundOff > 0 ? '+' : ''}${bill.roundOff.toFixed(2)}`, pageWidth - m - 2, currentTotalY, { align: 'right' });
+    doc.text(`${bill.roundOff > 0 ? '+' : ''}${Number(bill.roundOff || 0).toFixed(2)}`, pageWidth - m - 2, currentTotalY, { align: 'right' });
     currentTotalY += 6;
   }
 
   // Total Line
   doc.setFont('helvetica', 'bold');
   doc.text('Total', pageWidth - m - 30, bottomOfTable - 3, { align: 'right' });
-  doc.text(bill.netAmount.toFixed(2), pageWidth - m - 2, bottomOfTable - 3, { align: 'right' });
+  doc.text(Number(bill.netAmount || 0).toFixed(2), pageWidth - m - 2, bottomOfTable - 3, { align: 'right' });
 
   if (totalQty > 0) {
     doc.text(totalQty.toString(), pageWidth - m - 62, bottomOfTable - 3, { align: 'right' });
@@ -302,7 +302,7 @@ async function generateInvoicePage(doc: jsPDF, bill: Bill, supplier: SupplierPro
   
   // Net Amount on the right side
   doc.setFontSize(9);
-  doc.text(`Net Amount: Rs. ${bill.netAmount.toFixed(2)}`, pageWidth - m - 2, wordsY + 9, { align: 'right' });
+  doc.text(`Net Amount: Rs. ${Number(bill.netAmount || 0).toFixed(2)}`, pageWidth - m - 2, wordsY + 9, { align: 'right' });
   
   // Horizontal line below words
   doc.line(m, wordsY + wordsHeight, pageWidth - m, wordsY + wordsHeight);

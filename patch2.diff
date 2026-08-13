@@ -1,0 +1,39 @@
+--- src/components/SwipeableItem.tsx
++++ src/components/SwipeableItem.tsx
+@@ -4,7 +4,7 @@
+ import { useState, ReactNode } from 'react';
+ 
+ interface SwipeableItemProps {
+-  onDelete: () => void;
++  onDelete: () => void | Promise<void>;
+   children: ReactNode;
+   key?: string | number;
+ }
+ 
+@@ -14,24 +14,10 @@
+   const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+     // If swiped left past threshold
+     if (info.offset.x < -80) {
+       hapticFeedback('medium');
+-      setIsDeleting(true);
+-      setTimeout(() => {
+-        onDelete();
+-      }, 200); // Wait for exit animation
++      onDelete();
+     }
+   };
+ 
+-  if (isDeleting) {
+-    return (
+-      <motion.div
+-        initial={{ opacity: 1, height: 'auto' }}
+-        animate={{ opacity: 0, height: 0, scale: 0.9 }}
+-        transition={{ duration: 0.2 }}
+-        className="overflow-hidden"
+-      >
+-        {children}
+-      </motion.div>
+-    );
+-  }
+ 
+   return (

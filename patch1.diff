@@ -1,0 +1,27 @@
+--- src/components/PreviewModal.tsx
++++ src/components/PreviewModal.tsx
+@@ -187,9 +187,9 @@
+                       <td className="p-1 border-r border-black">{item.description}</td>
+                       <td className="p-1 border-r border-black text-center">{item.hsnSac}</td>
+                       <td className="p-1 border-r border-black text-right">{item.quantity}</td>
+-                      <td className="p-1 border-r border-black text-right">{item.rate.toFixed(2)}</td>
++                      <td className="p-1 border-r border-black text-right">{Number(item.rate || 0).toFixed(2)}</td>
+                       <td className="p-1 border-r border-black text-center">{item.per || 'PCS'}</td>
+-                      <td className="p-1 text-right border-black border-l-0">{item.amount.toFixed(2)}</td>
++                      <td className="p-1 text-right border-black border-l-0">{Number(item.amount || 0).toFixed(2)}</td>
+                     </tr>
+                   ))}
+ 
+@@ -225,9 +225,9 @@
+             <div className="w-48">
+               <div className="flex justify-between font-bold text-sm">
+                 <div className="text-right">
+-                {bill.discount ? <div className="mb-0.5 font-normal">-{bill.discount.toFixed(2)}</div> : null}
+-                {bill.roundOff ? <div className="mb-0.5 font-normal">{bill.roundOff > 0 ? '+' : ''}{bill.roundOff.toFixed(2)}</div> : null}
+-                <div>{bill.netAmount.toFixed(2)}</div>
++                {bill.discount ? <div className="mb-0.5 font-normal">-{Number(bill.discount || 0).toFixed(2)}</div> : null}
++                {bill.roundOff ? <div className="mb-0.5 font-normal">{bill.roundOff > 0 ? '+' : ''}{Number(bill.roundOff || 0).toFixed(2)}</div> : null}
++                <div>{Number(bill.netAmount || 0).toFixed(2)}</div>
+                 </div>
+               </div>
+             </div>
