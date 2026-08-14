@@ -62,15 +62,18 @@ async function generateInvoicePage(doc: jsPDF, bill: Bill, supplier: SupplierPro
   currentY += 7;
 
   // Supplier Details (Centered)
-  doc.setFontSize(14);
+  doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
   doc.text(supplier.businessName || 'ADARSH COLLECTION', pageWidth / 2, currentY, { align: 'center' });
   currentY += 5;
   
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setFont('helvetica', 'normal');
-  doc.text(supplier.address || '', pageWidth / 2, currentY, { align: 'center' });
-  currentY += 4;
+  if (supplier.address) {
+    const addressLines = doc.splitTextToSize(supplier.address, innerWidth - 10);
+    doc.text(addressLines, pageWidth / 2, currentY, { align: 'center' });
+    currentY += (addressLines.length * 3.8);
+  }
   
   const contactText = [];
   if (supplier.phone) contactText.push(`Mob: ${supplier.phone}`);
@@ -78,10 +81,10 @@ async function generateInvoicePage(doc: jsPDF, bill: Bill, supplier: SupplierPro
   
   if (contactText.length > 0) {
     doc.text(contactText.join(' | '), pageWidth / 2, currentY, { align: 'center' });
-    currentY += 5;
+    currentY += 4.5;
   }
   
-  currentY += 2; // small padding before line
+  currentY += 1.5; // small padding before line
 
   // Line below header
   doc.setLineWidth(thin);

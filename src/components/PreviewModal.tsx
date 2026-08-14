@@ -104,14 +104,20 @@ export function PreviewModal({ bill, onClose }: PreviewModalProps) {
             {/* Invoice Header */}
             <div className="text-center pt-2 px-2">
               <p className="text-[7px] uppercase tracking-wider mb-1">COMPOSITION TAXABLE PERSON, NOT ELIGIBLE TO COLLECT TAX ON SUPPLIES</p>
-              <h1 className="font-bold text-sm mb-2">BILL OF SUPPLY</h1>
-              <h2 className="font-bold text-base">{supplier?.businessName || 'ADARSH COLLECTION'}</h2>
-              <p className="text-[9px] mb-1">{supplier?.address}</p>
-              <p className="text-[9px]">
-                {supplier?.phone ? `Mob: ${supplier.phone}` : ''} 
-                {supplier?.phone && supplier?.gstin ? ' | ' : ''}
-                {supplier?.gstin ? `GSTIN: ${supplier.gstin}` : ''}
-              </p>
+              <h1 className="font-bold text-sm mb-1">BILL OF SUPPLY</h1>
+              <h2 className="font-bold text-base mb-1">{supplier?.businessName || 'ADARSH COLLECTION'}</h2>
+              {supplier?.address && (
+                <p className="text-[9px] leading-snug whitespace-pre-line mb-1 block font-medium">
+                  {supplier.address}
+                </p>
+              )}
+              {(supplier?.phone || supplier?.gstin) && (
+                <div className="text-[9px] leading-snug flex flex-wrap items-center justify-center gap-x-2 font-medium">
+                  {supplier?.phone && <span>Mob: {supplier.phone}</span>}
+                  {supplier?.phone && supplier?.gstin && <span>|</span>}
+                  {supplier?.gstin && <span>GSTIN: {supplier.gstin}</span>}
+                </div>
+              )}
             </div>
 
             {/* Grid 1: Buyer and Info */}
@@ -120,51 +126,51 @@ export function PreviewModal({ bill, onClose }: PreviewModalProps) {
               <div className="border-r border-black p-1.5 flex flex-col justify-start">
                 <p className="text-[8px] mb-1">Buyer (Bill to)</p>
                 <p className="font-bold text-xs">{bill.customerName}</p>
-                {bill.customerAddress && <p className="whitespace-pre-line">{bill.customerAddress}</p>}
-                {bill.customerCity && <p>{bill.customerCity}</p>}
+                {bill.customerAddress && <p className="whitespace-pre-line leading-snug font-medium">{bill.customerAddress}</p>}
+                {bill.customerCity && <p className="leading-snug font-medium">{bill.customerCity}</p>}
                 {(bill.customerState || bill.customerStateCode) && (
-                  <p>{bill.customerState} {bill.customerStateCode ? `(Code: ${bill.customerStateCode})` : ''}</p>
+                  <p className="leading-snug font-medium">{bill.customerState} {bill.customerStateCode ? `(Code: ${bill.customerStateCode})` : ''}</p>
                 )}
-                {bill.customerPhone && <p>Mob: {bill.customerPhone}</p>}
-                {bill.customerGst && <p>GSTIN: {bill.customerGst}</p>}
+                {bill.customerPhone && <p className="leading-snug font-medium">Mob: {bill.customerPhone}</p>}
+                {bill.customerGst && <p className="leading-snug font-medium">GSTIN: {bill.customerGst}</p>}
               </div>
               
               {/* Right Side: Info 4 rows */}
               <div className="grid grid-cols-2 grid-rows-4">
                 <div className="border-b border-r border-black p-1">
                   <p className="font-bold text-[7px]">BILL NO.</p>
-                  <p>{bill.invoiceNumber}</p>
+                  <p className="font-medium">{bill.invoiceNumber}</p>
                 </div>
                 <div className="border-b border-black p-1">
                   <p className="font-bold text-[7px]">DATE</p>
-                  <p>{formatInvoiceDate(bill.date).text}</p>
+                  <p className="font-medium">{formatInvoiceDate(bill.date).text}</p>
                 </div>
                 
                 <div className="border-b border-r border-black p-1">
                   <p className="font-bold text-[7px]">PLACE OF SUPPLY</p>
-                  <p>{bill.placeOfSupply || '-'}</p>
+                  <p className="font-medium">{bill.placeOfSupply || '-'}</p>
                 </div>
                 <div className="border-b border-black p-1">
                   <p className="font-bold text-[7px]">STATE CODE</p>
-                  <p>{bill.supplyStateCode || '-'}</p>
+                  <p className="font-medium">{bill.supplyStateCode || '-'}</p>
                 </div>
                 
                 <div className="border-b border-r border-black p-1">
                   <p className="font-bold text-[7px]">MODE OF PAY</p>
-                  <p>{bill.modeOfPay || '-'}</p>
+                  <p className="font-medium">{bill.modeOfPay || '-'}</p>
                 </div>
                 <div className="border-b border-black p-1">
                   <p className="font-bold text-[7px]">TRANSPORT / REF</p>
-                  <p>{bill.transportRef || '-'}</p>
+                  <p className="font-medium">{bill.transportRef || '-'}</p>
                 </div>
                 
                 <div className="border-r border-black p-1">
                   <p className="font-bold text-[7px]">E-WAY BILL NO.</p>
-                  <p>{bill.ewayBillNo || '-'}</p>
+                  <p className="font-medium">{bill.ewayBillNo || '-'}</p>
                 </div>
                 <div className="p-1">
                   <p className="font-bold text-[7px]">DISPATCH THROUGH</p>
-                  <p>{bill.dispatchThrough || '-'}</p>
+                  <p className="font-medium">{bill.dispatchThrough || '-'}</p>
                 </div>
               </div>
             </div>
@@ -183,7 +189,7 @@ export function PreviewModal({ bill, onClose }: PreviewModalProps) {
                     <th className="p-1 font-bold text-right w-16">Amount</th>
                   </tr>
                 </thead>
-                <tbody className="align-top">
+                <tbody className="align-top font-medium">
                   {bill.items.map((item, idx) => (
                     <tr key={item.id}>
                       <td className="p-1 border-r border-black text-center">{idx + 1}</td>
@@ -228,8 +234,8 @@ export function PreviewModal({ bill, onClose }: PreviewModalProps) {
               <div className="w-[48px] border-l border-black"></div>
               <div className="w-[32px] border-l border-black"></div>
               <div className="w-[64px] text-right p-1 border-l border-black font-bold">
-                {bill.discount ? <div className="mb-0.5 font-normal">-{Number(bill.discount || 0).toFixed(2)}</div> : null}
-                {bill.roundOff ? <div className="mb-0.5 font-normal">{bill.roundOff > 0 ? '+' : ''}{Number(bill.roundOff || 0).toFixed(2)}</div> : null}
+                {bill.discount ? <div className="mb-0.5 font-medium">-{Number(bill.discount || 0).toFixed(2)}</div> : null}
+                {bill.roundOff ? <div className="mb-0.5 font-medium">{bill.roundOff > 0 ? '+' : ''}{Number(bill.roundOff || 0).toFixed(2)}</div> : null}
                 <div>{Number(bill.netAmount || 0).toFixed(2)}</div>
               </div>
             </div>
@@ -240,13 +246,13 @@ export function PreviewModal({ bill, onClose }: PreviewModalProps) {
               <div className="border-r border-black p-1.5 flex flex-col justify-between">
                 <div>
                   <p className="font-bold mb-0.5 text-[8px]">DECLARATION & TERMS</p>
-                  <p className="whitespace-pre-line text-[7px] leading-tight mb-2">
+                  <p className="whitespace-pre-line text-[7px] leading-tight mb-2 font-medium">
                     {termsText}
                   </p>
                 </div>
                 <div>
                   <p className="font-bold mb-0.5 text-[8px]">BANK ACCOUNT DETAILS</p>
-                  <div className="text-[7px]">
+                  <div className="text-[7px] font-medium">
                     {supplier?.bankName && <p>Bank Name: {supplier.bankName}</p>}
                     {supplier?.accountNumber && <p>A/C No: {supplier.accountNumber}</p>}
                     {supplier?.ifsc && <p>IFSC: {supplier.ifsc}</p>}
@@ -257,7 +263,7 @@ export function PreviewModal({ bill, onClose }: PreviewModalProps) {
               {/* Signatory */}
               <div className="p-1.5 flex flex-col justify-between items-end text-right">
                 <p className="font-bold text-[8px]">for {supplier?.businessName || 'ADARSH COLLECTION'}</p>
-                <p className="mt-12 text-[7px]">{supplier?.authorizedSignatory || 'Authorised Signatory'}</p>
+                <p className="mt-12 text-[7px] font-medium">{supplier?.authorizedSignatory || 'Authorised Signatory'}</p>
               </div>
             </div>
 
