@@ -7,6 +7,7 @@ import { PreviewModal } from './PreviewModal';
 import { saveBillLocally, getLocalSettings, getLocalBills, saveSettingsLocally } from '../lib/offlineSync';
 import { AnimatePresence } from 'motion/react';
 import { INDIAN_STATES } from '../lib/states';
+import { DatePicker } from './DatePicker';
 
 export function BillForm({ editingBill, onClearEdit }: { editingBill?: Bill | null, onClearEdit?: () => void }) {
   const [bill, setBill] = useState<Partial<Bill>>({
@@ -259,11 +260,10 @@ export function BillForm({ editingBill, onClearEdit }: { editingBill?: Bill | nu
             </div>
             <div className="flex-1">
               <label className="block text-xs font-medium text-gray-700 mb-1">Date</label>
-              <input
-                type="date"
+              <DatePicker
+                id="bill-date-picker"
                 value={bill.date}
-                onChange={(e) => updateBill({ date: e.target.value })}
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500"
+                onChange={(newDate) => updateBill({ date: newDate })}
               />
             </div>
           </div>
