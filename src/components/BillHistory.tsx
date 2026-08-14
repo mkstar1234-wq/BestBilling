@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { RefreshCw, Search, FileText, Eye, Share2, Download, Edit2, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { RefreshCw, Search, FileText, Eye, Share2, Download, Edit2, Trash2, Check, X } from 'lucide-react';
 import { Bill } from '../types';
 import { getLocalBills, pullFromFirebase, deleteBillLocally, getLocalSettings } from '../lib/offlineSync';
 import { SwipeableItem } from './SwipeableItem';
@@ -9,6 +9,233 @@ import { motion, AnimatePresence } from 'motion/react';
 import { PreviewModal } from './PreviewModal';
 import { generateInvoicePDF, generateBulkInvoicePDF } from '../lib/pdfGenerator';
 import { sharePDF, downloadBlob } from '../lib/shareUtils';
+
+interface BillHistoryCardProps {
+  bill: Bill;
+  isSelected: boolean;
+  isSelectionMode: boolean;
+  onToggleSelect: (id: string) => void;
+  onLongPress: (id: string) => void;
+  onEdit?: (bill: Bill) => void;
+  onDelete: (id: string) => void;
+  onView: (bill: Bill) => void;
+  onShare: (bill: Bill) => void;
+  onDownload: (bill: Bill) => void;
+  isSharing: boolean;
+  isDownloading: boolean;
+}
+
+function BillHistoryCard({
+  bill,
+  isSelected,
+  isSelectionMode,
+  onToggleSelect,
+  onLongPress,
+  onEdit,
+  onDelete,
+  onView,
+  onShare,
+  onDownload,
+  isSharing,
+  isDownloading
+}: BillHistoryCardProps) {
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressTriggered = useRef(false);
+  const startPos = useRef<{ x: number; y: number } | null>(null);
+
+  const startPress = (e: React.TouchEvent | React.MouseEvent) => {
+    if (isSelectionMode) return;
+    isLongPressTriggered.current = false;
+    const point = 'touches' in e ? e.touches[0] : e;
+    startPos.current = { x: point.clientX, y: point.clientY };
+
+    timerRef.current = setTimeout(() => {
+      isLongPressTriggered.current = true;
+      hapticFeedback('medium');
+      onLongPress(bill.id);
+    }, 450);
+  };
+
+  const movePress = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!startPos.current || !timerRef.current) return;
+    const point = 'touches' in e ? e.touches[0] : e;
+    const diffX = Math.abs(point.clientX - startPos.current.x);
+    const diffY = Math.abs(point.clientY - startPos.current.y);
+    if (diffX > 10 || diffY > 10) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const cancelPress = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (isLongPressTriggered.current) {
+      isLongPressTriggered.current = false;
+      return;
+    }
+    if (isSelectionMode) {
+      e.preventDefault();
+      e.stopPropagation();
+      onToggleSelect(bill.id);
+    }
+  };
+
+  return (
+    <SwipeableItem 
+      onDelete={() => onDelete(bill.id)}
+      disabled={isSelectionMode}
+    >
+      <div 
+        onTouchStart={startPress}
+        onTouchMove={movePress}
+        onTouchEnd={cancelPress}
+        onTouchCancel={cancelPress}
+        onMouseDown={startPress}
+        onMouseMove={movePress}
+        onMouseUp={cancelPress}
+        onMouseLeave={cancelPress}
+        onClick={handleCardClick}
+        className={`flex flex-col w-full select-none transition-all ${
+          isSelectionMode ? 'cursor-pointer' : ''
+        }`}
+      >
+        {/* Top Action Bar / Selection Checkbox */}
+        <div className="flex justify-between items-center mb-2 flex-wrap gap-2">
+          {isSelectionMode ? (
+            <div className="flex items-center gap-2 py-0.5">
+              <div 
+                className={`w-5 h-5 rounded-full flex items-center justify-center transition-all ${
+                  isSelected 
+                    ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-300' 
+                    : 'border-2 border-gray-300 bg-white'
+                }`}
+              >
+                {isSelected && <Check size={12} strokeWidth={3} />}
+              </div>
+              <span className={`text-xs font-bold ${isSelected ? 'text-blue-700' : 'text-gray-500'}`}>
+                {isSelected ? 'Selected' : 'Tap to select'}
+              </span>
+            </div>
+          ) : (
+            <div />
+          )}
+
+          {!isSelectionMode && (
+            <div className="flex justify-end gap-2 flex-wrap ml-auto">
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onEdit) onEdit(bill);
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                className="flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-100 px-3 py-1.5 rounded-full active:bg-indigo-200 transition-colors"
+              >
+                <Edit2 size={14} />
+                Edit
+              </button>
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(bill.id);
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                className="flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-100 px-3 py-1.5 rounded-full active:bg-red-200 transition-colors"
+              >
+                <Trash2 size={14} />
+                Delete
+              </button>
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onView(bill);
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                className="flex items-center gap-1.5 text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full active:bg-blue-100 transition-colors"
+              >
+                <Eye size={14} />
+                Preview
+              </button>
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onShare(bill);
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                disabled={isSharing || isDownloading}
+                className="flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-100 px-3 py-1.5 rounded-full active:bg-blue-200 transition-colors disabled:opacity-50"
+              >
+                {isSharing ? (
+                  <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <Share2 size={14} />
+                )}
+                Share
+              </button>
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDownload(bill);
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                disabled={isSharing || isDownloading}
+                className="flex items-center gap-1.5 text-xs font-bold text-green-700 bg-green-100 px-3 py-1.5 rounded-full active:bg-green-200 transition-colors disabled:opacity-50"
+              >
+                {isDownloading ? (
+                  <div className="w-3.5 h-3.5 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <Download size={14} />
+                )}
+                Download
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Bill Content details */}
+        <div className={`flex justify-between items-start w-full border-t border-gray-50 pt-2 rounded-lg p-1.5 transition-colors ${
+          isSelected ? 'bg-blue-50/70 border border-blue-200' : ''
+        }`}>
+          <div className="flex flex-col">
+            <h3 className="font-bold text-gray-900">{bill.customerName || 'Cash'}</h3>
+            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+              <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">
+                {bill.invoiceNumber}
+              </span>
+              <span>•</span>
+              <span>{formatInvoiceDate(bill.date).numerical}</span>
+            </div>
+          </div>
+          <div className="text-right flex flex-col items-end justify-center">
+            <span className="font-extrabold text-gray-900 text-base">
+              ₹{Number(bill.netAmount || 0).toFixed(2)}
+            </span>
+            {bill.syncStatus === 'pending_sync' ? (
+              <span className="text-[10px] text-amber-500 font-bold tracking-wide mt-1 uppercase">Pending</span>
+            ) : (
+              <span className="text-[10px] text-green-500 font-bold tracking-wide mt-1 uppercase">Synced</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </SwipeableItem>
+  );
+}
 
 export function BillHistory({ onEdit }: { onEdit?: (bill: Bill) => void }) {
   const [bills, setBills] = useState<Bill[]>([]);
@@ -22,6 +249,11 @@ export function BillHistory({ onEdit }: { onEdit?: (bill: Bill) => void }) {
   const [isSharingAll, setIsSharingAll] = useState(false);
   const [displayLimit, setDisplayLimit] = useState(20);
   const [billToDelete, setBillToDelete] = useState<string | null>(null);
+
+  // Manual Selection Mode State
+  const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
+  const [isSharingSelected, setIsSharingSelected] = useState(false);
+  const [isDownloadingSelected, setIsDownloadingSelected] = useState(false);
 
   const observer = useRef<IntersectionObserver | null>(null);
 
@@ -65,6 +297,11 @@ export function BillHistory({ onEdit }: { onEdit?: (bill: Bill) => void }) {
     if (!billToDelete) return;
     await deleteBillLocally(billToDelete);
     setBills(prev => prev.filter(b => b.id !== billToDelete));
+    setSelectedBillIds(prev => {
+      const next = new Set(prev);
+      next.delete(billToDelete);
+      return next;
+    });
     setBillToDelete(null);
   };
 
@@ -197,6 +434,117 @@ export function BillHistory({ onEdit }: { onEdit?: (bill: Bill) => void }) {
     }
   };
 
+  // Selection handlers
+  const handleLongPressSelect = (id: string) => {
+    setSelectedBillIds(new Set([id]));
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedBillIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+    hapticFeedback('light');
+  };
+
+  const handleToggleSelectAll = () => {
+    hapticFeedback('light');
+    if (selectedBillIds.size === filteredBills.length) {
+      setSelectedBillIds(new Set());
+    } else {
+      setSelectedBillIds(new Set(filteredBills.map(b => b.id)));
+    }
+  };
+
+  const clearSelection = () => {
+    hapticFeedback('light');
+    setSelectedBillIds(new Set());
+  };
+
+  // Helper to get serially sorted selected bills
+  const getSortedSelectedBills = useCallback(() => {
+    const selectedList = bills.filter(b => selectedBillIds.has(b.id));
+    return [...selectedList].sort((a, b) => {
+      const numA = parseInt((a.invoiceNumber || '').replace(/\D/g, ''), 10);
+      const numB = parseInt((b.invoiceNumber || '').replace(/\D/g, ''), 10);
+      if (!isNaN(numA) && !isNaN(numB) && numA !== numB) {
+        return numA - numB;
+      }
+      return (a.invoiceNumber || '').localeCompare(b.invoiceNumber || '') || (a.date || '').localeCompare(b.date || '');
+    });
+  }, [bills, selectedBillIds]);
+
+  const handleShareSelected = async () => {
+    if (selectedBillIds.size === 0) return;
+    hapticFeedback('light');
+    setIsSharingSelected(true);
+    try {
+      const settings = await getLocalSettings();
+      const supplier = settings?.supplier || {
+        businessName: 'ADARSH COLLECTION',
+        address: 'Business Address',
+        gstin: '',
+        phone: '',
+        email: '',
+        terms: '',
+        termsList: [
+          "Goods once sold will not be taken back.",
+          "Interest @ 18% p.a. will be charged if payment is delayed.",
+          "Subject to local jurisdiction.",
+          "E.& O.E."
+        ],
+        authorizedSignatory: 'Authorised Signatory'
+      };
+
+      const sortedSelected = getSortedSelectedBills();
+      const blob = await generateBulkInvoicePDF(sortedSelected, supplier);
+      const filename = `Selected_Bills_${sortedSelected.length}.pdf`;
+      await sharePDF(blob, filename);
+    } catch (err) {
+      console.error("Failed to share selected bills:", err);
+    } finally {
+      setIsSharingSelected(false);
+    }
+  };
+
+  const handleDownloadSelected = async () => {
+    if (selectedBillIds.size === 0) return;
+    hapticFeedback('light');
+    setIsDownloadingSelected(true);
+    try {
+      const settings = await getLocalSettings();
+      const supplier = settings?.supplier || {
+        businessName: 'ADARSH COLLECTION',
+        address: 'Business Address',
+        gstin: '',
+        phone: '',
+        email: '',
+        terms: '',
+        termsList: [
+          "Goods once sold will not be taken back.",
+          "Interest @ 18% p.a. will be charged if payment is delayed.",
+          "Subject to local jurisdiction.",
+          "E.& O.E."
+        ],
+        authorizedSignatory: 'Authorised Signatory'
+      };
+
+      const sortedSelected = getSortedSelectedBills();
+      const blob = await generateBulkInvoicePDF(sortedSelected, supplier);
+      const filename = `Selected_Bills_${sortedSelected.length}.pdf`;
+      downloadBlob(blob, filename);
+    } catch (err) {
+      console.error("Failed to download selected bills:", err);
+    } finally {
+      setIsDownloadingSelected(false);
+    }
+  };
+
   const filteredBills = useMemo(() => {
     return bills.filter(b => {
       const matchesSearch = 
@@ -244,8 +592,10 @@ export function BillHistory({ onEdit }: { onEdit?: (bill: Bill) => void }) {
     return filteredBills.reduce((sum, bill) => sum + bill.netAmount, 0);
   }, [filteredBills]);
 
+  const isSelectionMode = selectedBillIds.size > 0;
+
   return (
-    <div className="flex flex-col h-full bg-gray-50 pt-safe">
+    <div className="flex flex-col h-full bg-gray-50 pt-safe relative">
       <header className="bg-white px-4 py-3 border-b border-gray-200 sticky top-0 z-20 shadow-sm flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900">History</h1>
@@ -325,7 +675,7 @@ export function BillHistory({ onEdit }: { onEdit?: (bill: Bill) => void }) {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4 pb-[100px]">
+      <main className="flex-1 overflow-y-auto p-4 pb-28">
         {filteredBills.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center mt-10">
             <FileText size={48} className="text-gray-300 mb-4" />
@@ -344,82 +694,20 @@ export function BillHistory({ onEdit }: { onEdit?: (bill: Bill) => void }) {
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
                 >
-                  <SwipeableItem onDelete={() => handleDelete(bill.id)}>
-                    <div className="flex flex-col w-full">
-                      {/* Top Action Bar for Bill Card */}
-                      <div className="flex justify-end gap-2 mb-2 flex-wrap">
-                        <button 
-                          onClick={() => {
-                            if (onEdit) onEdit(bill);
-                          }}
-                          className="flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-100 px-3 py-1.5 rounded-full active:bg-indigo-200 transition-colors"
-                        >
-                          <Edit2 size={14} />
-                          Edit
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(bill.id)}
-                          className="flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-100 px-3 py-1.5 rounded-full active:bg-red-200 transition-colors"
-                        >
-                          <Trash2 size={14} />
-                          Delete
-                        </button>
-                        <button 
-                          onClick={() => handleView(bill)}
-                          className="flex items-center gap-1.5 text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full active:bg-blue-100 transition-colors"
-                        >
-                          <Eye size={14} />
-                          Preview
-                        </button>
-                        <button 
-                          onClick={() => handleShare(bill)}
-                          disabled={isSharingId === bill.id || isDownloadingId === bill.id}
-                          className="flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-100 px-3 py-1.5 rounded-full active:bg-blue-200 transition-colors disabled:opacity-50"
-                        >
-                          {isSharingId === bill.id ? (
-                            <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                          ) : (
-                            <Share2 size={14} />
-                          )}
-                          Share
-                        </button>
-                        <button 
-                          onClick={() => handleDownload(bill)}
-                          disabled={isSharingId === bill.id || isDownloadingId === bill.id}
-                          className="flex items-center gap-1.5 text-xs font-bold text-green-700 bg-green-100 px-3 py-1.5 rounded-full active:bg-green-200 transition-colors disabled:opacity-50"
-                        >
-                          {isDownloadingId === bill.id ? (
-                            <div className="w-3.5 h-3.5 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-                          ) : (
-                            <Download size={14} />
-                          )}
-                          Download
-                        </button>
-                      </div>
-                      <div className="flex justify-between items-start w-full border-t border-gray-50 pt-2">
-                        <div className="flex flex-col">
-                          <h3 className="font-bold text-gray-900">{bill.customerName || 'Cash'}</h3>
-                          <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                            <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">
-                              {bill.invoiceNumber}
-                            </span>
-                            <span>•</span>
-                            <span>{formatInvoiceDate(bill.date).numerical}</span>
-                          </div>
-                        </div>
-                        <div className="text-right flex flex-col items-end justify-center">
-                          <span className="font-extrabold text-gray-900 text-base">
-                            ₹{Number(bill.netAmount || 0).toFixed(2)}
-                          </span>
-                          {bill.syncStatus === 'pending_sync' ? (
-                            <span className="text-[10px] text-amber-500 font-bold tracking-wide mt-1 uppercase">Pending</span>
-                          ) : (
-                            <span className="text-[10px] text-green-500 font-bold tracking-wide mt-1 uppercase">Synced</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </SwipeableItem>
+                  <BillHistoryCard 
+                    bill={bill}
+                    isSelected={selectedBillIds.has(bill.id)}
+                    isSelectionMode={isSelectionMode}
+                    onToggleSelect={handleToggleSelect}
+                    onLongPress={handleLongPressSelect}
+                    onEdit={onEdit}
+                    onDelete={handleDelete}
+                    onView={handleView}
+                    onShare={handleShare}
+                    onDownload={handleDownload}
+                    isSharing={isSharingId === bill.id}
+                    isDownloading={isDownloadingId === bill.id}
+                  />
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -439,6 +727,69 @@ export function BillHistory({ onEdit }: { onEdit?: (bill: Bill) => void }) {
           </div>
         )}
       </main>
+
+      {/* Floating Action Bar for Selected Bills */}
+      <AnimatePresence>
+        {isSelectionMode && (
+          <motion.div
+            initial={{ opacity: 0, y: -30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -30 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            className="fixed top-2 left-3 right-3 max-w-md mx-auto z-40 bg-gray-900/95 text-white backdrop-blur-md rounded-xl shadow-xl px-3 py-1.5 border border-white/10 flex items-center justify-between gap-2"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="bg-blue-500 text-white text-[11px] font-black px-2 py-0.5 rounded-full shadow-sm shrink-0">
+                {selectedBillIds.size}
+              </span>
+              <button
+                type="button"
+                onClick={handleToggleSelectAll}
+                className="text-[11px] font-bold text-blue-300 hover:text-blue-200 active:underline whitespace-nowrap truncate"
+              >
+                {selectedBillIds.size === filteredBills.length ? 'Deselect All' : 'Select All'}
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={handleShareSelected}
+                disabled={isSharingSelected || isDownloadingSelected}
+                className="bg-white text-gray-900 font-bold py-1.5 px-2.5 rounded-lg flex items-center gap-1 active:bg-gray-100 transition-all text-xs shadow-sm disabled:opacity-50"
+              >
+                {isSharingSelected ? (
+                  <div className="w-3 h-3 border-2 border-gray-900 border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <Share2 size={13} className="text-blue-600" />
+                )}
+                <span>Share</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadSelected}
+                disabled={isSharingSelected || isDownloadingSelected}
+                className="bg-blue-600 text-white font-bold py-1.5 px-2.5 rounded-lg flex items-center gap-1 active:bg-blue-700 transition-all text-xs shadow-sm disabled:opacity-50"
+              >
+                {isDownloadingSelected ? (
+                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <Download size={13} />
+                )}
+                <span>Download</span>
+              </button>
+              <button
+                type="button"
+                onClick={clearSelection}
+                className="p-1 rounded-lg text-gray-400 hover:text-white active:bg-white/10 transition-colors"
+                title="Cancel Selection"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {selectedBill && (
