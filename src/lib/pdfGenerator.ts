@@ -99,14 +99,19 @@ async function generateInvoicePage(doc: jsPDF, bill: Bill, supplier: SupplierPro
   doc.text('Buyer (Bill to)', m + 2, currentY + 4);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.text(bill.customerName || 'Cash', m + 2, currentY + 9);
-  doc.setFontSize(9);
+  doc.text(bill.customerName || 'Cash', m + 2, currentY + 8.5);
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   
-  let buyerY = currentY + 14;
+  let buyerY = currentY + 12.5;
+  if (bill.customerAddress) {
+    const addrLines = doc.splitTextToSize(bill.customerAddress, (innerWidth / 2) - 4);
+    doc.text(addrLines, m + 2, buyerY);
+    buyerY += (addrLines.length * 3.5);
+  }
   if (bill.customerCity) {
     doc.text(bill.customerCity, m + 2, buyerY);
-    buyerY += 4.5;
+    buyerY += 3.5;
   }
   if (bill.customerState) {
     let stateText = bill.customerState;
@@ -114,6 +119,14 @@ async function generateInvoicePage(doc: jsPDF, bill: Bill, supplier: SupplierPro
       stateText += ` (Code: ${bill.customerStateCode})`;
     }
     doc.text(stateText, m + 2, buyerY);
+    buyerY += 3.5;
+  }
+  if (bill.customerPhone) {
+    doc.text(`Mob: ${bill.customerPhone}`, m + 2, buyerY);
+    buyerY += 3.5;
+  }
+  if (bill.customerGst) {
+    doc.text(`GSTIN: ${bill.customerGst}`, m + 2, buyerY);
   }
 
   // Right Side: 4 Rows

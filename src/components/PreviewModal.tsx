@@ -120,10 +120,13 @@ export function PreviewModal({ bill, onClose }: PreviewModalProps) {
               <div className="border-r border-black p-1.5 flex flex-col justify-start">
                 <p className="text-[8px] mb-1">Buyer (Bill to)</p>
                 <p className="font-bold text-xs">{bill.customerName}</p>
+                {bill.customerAddress && <p className="whitespace-pre-line">{bill.customerAddress}</p>}
                 {bill.customerCity && <p>{bill.customerCity}</p>}
                 {(bill.customerState || bill.customerStateCode) && (
                   <p>{bill.customerState} {bill.customerStateCode ? `(Code: ${bill.customerStateCode})` : ''}</p>
                 )}
+                {bill.customerPhone && <p>Mob: {bill.customerPhone}</p>}
+                {bill.customerGst && <p>GSTIN: {bill.customerGst}</p>}
               </div>
               
               {/* Right Side: Info 4 rows */}

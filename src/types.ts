@@ -23,6 +23,7 @@ export interface AppSettings {
     defaultStateCode?: string;
     defaultBuyerState?: string;
     defaultBuyerCity?: string;
+    defaultBuyerAddress?: string;
   };
   preferences: {
     showEwayBill: boolean;
@@ -31,6 +32,9 @@ export interface AppSettings {
     showStateCode?: boolean;
     showTransportReference?: boolean;
     showHsnCode?: boolean;
+    showBuyerGst?: boolean;
+    showBuyerPhone?: boolean;
+    showBuyerAddress?: boolean;
     defaultModeOfPay?: string;
     defaultBuyerName?: string;
   };
@@ -57,6 +61,9 @@ export interface Bill {
   customerCity: string;
   customerState: string;
   customerStateCode: string;
+  customerGst?: string;
+  customerPhone?: string;
+  customerAddress?: string;
 
   placeOfSupply: string;
   supplyStateCode: string;

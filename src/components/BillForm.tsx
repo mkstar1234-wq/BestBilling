@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Check, Receipt, Sliders, X, FileText, MapPin, Truck, Hash, Trash2 } from 'lucide-react';
+import { Plus, Check, Receipt, Sliders, X, FileText, MapPin, Truck, Hash, Trash2, Phone } from 'lucide-react';
 import { Bill, InvoiceItem, SupplierProfile, AppSettings } from '../types';
 import { calculateItemAmount, calculateTotalAmount, calculateNetAmount, getNextInvoiceNumber } from '../lib/billingLogic';
 import { hapticFeedback } from '../lib/haptics';
@@ -14,6 +14,9 @@ export function BillForm({ editingBill, onClearEdit }: { editingBill?: Bill | nu
     date: new Date().toISOString().split('T')[0],
     customerName: '',
     customerDetails: '',
+    customerGst: '',
+    customerPhone: '',
+    customerAddress: '',
     items: [],
     discount: 0,
     roundOff: 0,
@@ -50,6 +53,9 @@ export function BillForm({ editingBill, onClearEdit }: { editingBill?: Bill | nu
           date: new Date().toISOString().split('T')[0],
           customerName: localSettings.preferences?.defaultBuyerName || '',
           customerDetails: '',
+          customerGst: '',
+          customerPhone: '',
+          customerAddress: localSettings.invoice.defaultBuyerAddress || '',
           items: [],
           discount: 0,
           roundOff: 0,
@@ -70,6 +76,9 @@ export function BillForm({ editingBill, onClearEdit }: { editingBill?: Bill | nu
           date: new Date().toISOString().split('T')[0],
           customerName: '',
           customerDetails: '',
+          customerGst: '',
+          customerPhone: '',
+          customerAddress: '',
           items: [],
           discount: 0,
           roundOff: 0
@@ -135,6 +144,9 @@ export function BillForm({ editingBill, onClearEdit }: { editingBill?: Bill | nu
         customerCity: bill.customerCity || '',
         customerState: bill.customerState || '',
         customerStateCode: bill.customerStateCode || '',
+        customerGst: bill.customerGst || '',
+        customerPhone: bill.customerPhone || '',
+        customerAddress: bill.customerAddress || '',
 
         placeOfSupply: bill.placeOfSupply || '',
         supplyStateCode: bill.supplyStateCode || '',
@@ -192,6 +204,9 @@ export function BillForm({ editingBill, onClearEdit }: { editingBill?: Bill | nu
       date: new Date().toISOString().split('T')[0],
       customerName: currentSettings?.preferences?.defaultBuyerName || '',
       customerDetails: '',
+      customerGst: '',
+      customerPhone: '',
+      customerAddress: currentSettings?.invoice?.defaultBuyerAddress || '',
       items: [],
       discount: 0,
       roundOff: 0,
@@ -337,6 +352,45 @@ export function BillForm({ editingBill, onClearEdit }: { editingBill?: Bill | nu
               className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500"
             />
           </div>
+
+          {settings?.preferences?.showBuyerGst !== false && (
+            <div className="mb-3">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Buyer GST No.</label>
+              <input
+                type="text"
+                value={bill.customerGst || ''}
+                onChange={(e) => updateBill({ customerGst: e.target.value })}
+                placeholder="e.g. 27AAAAA0000A1Z5"
+                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500 uppercase"
+              />
+            </div>
+          )}
+
+          {settings?.preferences?.showBuyerPhone !== false && (
+            <div className="mb-3">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Buyer Phone No.</label>
+              <input
+                type="tel"
+                value={bill.customerPhone || ''}
+                onChange={(e) => updateBill({ customerPhone: e.target.value })}
+                placeholder="e.g. +91 9876543210"
+                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500"
+              />
+            </div>
+          )}
+
+          {settings?.preferences?.showBuyerAddress !== false && (
+            <div className="mb-3">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Buyer Address</label>
+              <textarea
+                value={bill.customerAddress || ''}
+                onChange={(e) => updateBill({ customerAddress: e.target.value })}
+                rows={2}
+                placeholder="Enter buyer address"
+                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500 resize-none"
+              />
+            </div>
+          )}
 
           <div className="flex gap-3 mb-3">
             <div className="flex-1">
@@ -549,6 +603,9 @@ export function BillForm({ editingBill, onClearEdit }: { editingBill?: Bill | nu
                 { key: 'showStateCode' as const, label: 'State Code', icon: <MapPin className="w-5 h-5 text-gray-500" /> },
                 { key: 'showTransportReference' as const, label: 'Transport Reference', icon: <Truck className="w-5 h-5 text-gray-500" /> },
                 { key: 'showHsnCode' as const, label: 'HSN Code', icon: <Hash className="w-5 h-5 text-gray-500" /> },
+                { key: 'showBuyerGst' as const, label: 'Buyer GST No.', icon: <FileText className="w-5 h-5 text-gray-500" /> },
+                { key: 'showBuyerPhone' as const, label: 'Buyer Phone No.', icon: <Phone className="w-5 h-5 text-gray-500" /> },
+                { key: 'showBuyerAddress' as const, label: 'Buyer Address', icon: <MapPin className="w-5 h-5 text-gray-500" /> },
               ].map(item => (
                 <div key={item.key} className="flex items-center justify-between py-3 border-b border-gray-50">
                   <div className="flex items-center space-x-3">

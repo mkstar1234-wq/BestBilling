@@ -23,7 +23,8 @@ export function SettingsView() {
       defaultPlaceOfSupply: '',
       defaultStateCode: '',
       defaultBuyerState: '',
-      defaultBuyerCity: ''
+      defaultBuyerCity: '',
+      defaultBuyerAddress: ''
     },
     preferences: {
       showEwayBill: false,
@@ -32,6 +33,9 @@ export function SettingsView() {
       showStateCode: true,
       showTransportReference: true,
       showHsnCode: true,
+      showBuyerGst: true,
+      showBuyerPhone: true,
+      showBuyerAddress: true,
       defaultModeOfPay: '',
     },
     updatedAt: Date.now(),
@@ -379,6 +383,17 @@ export function SettingsView() {
               </select>
             </div>
           </div>
+
+          <div className="mt-4">
+            <label className="block text-xs font-medium text-gray-700 mb-1">Default Buyer Address</label>
+            <input
+              type="text"
+              value={settings.invoice.defaultBuyerAddress || ''}
+              onChange={(e) => updateInvoice({ defaultBuyerAddress: e.target.value })}
+              className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500"
+              placeholder="e.g. 123 Main Street, Sector 4"
+            />
+          </div>
         </section>
 
         {/* App Preferences */}
@@ -518,6 +533,72 @@ export function SettingsView() {
               <span
                 aria-hidden="true"
                 className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${settings.preferences.showHsnCode ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between mt-6">
+            <div>
+              <h3 className="text-sm font-medium text-gray-900">Buyer GST No.</h3>
+              <p className="text-xs text-gray-500">Enable Buyer GST No. field under Buyer details</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                hapticFeedback('light');
+                updatePreferences({ showBuyerGst: !(settings.preferences.showBuyerGst ?? true) });
+              }}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${(settings.preferences.showBuyerGst ?? true) ? 'bg-blue-600' : 'bg-gray-200'}`}
+              role="switch"
+              aria-checked={settings.preferences.showBuyerGst ?? true}
+            >
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${(settings.preferences.showBuyerGst ?? true) ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between mt-6">
+            <div>
+              <h3 className="text-sm font-medium text-gray-900">Buyer Phone No.</h3>
+              <p className="text-xs text-gray-500">Enable Buyer Phone No. field under Buyer details</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                hapticFeedback('light');
+                updatePreferences({ showBuyerPhone: !(settings.preferences.showBuyerPhone ?? true) });
+              }}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${(settings.preferences.showBuyerPhone ?? true) ? 'bg-blue-600' : 'bg-gray-200'}`}
+              role="switch"
+              aria-checked={settings.preferences.showBuyerPhone ?? true}
+            >
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${(settings.preferences.showBuyerPhone ?? true) ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between mt-6">
+            <div>
+              <h3 className="text-sm font-medium text-gray-900">Buyer Address</h3>
+              <p className="text-xs text-gray-500">Enable Buyer Address field under Buyer details</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                hapticFeedback('light');
+                updatePreferences({ showBuyerAddress: !(settings.preferences.showBuyerAddress ?? true) });
+              }}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${(settings.preferences.showBuyerAddress ?? true) ? 'bg-blue-600' : 'bg-gray-200'}`}
+              role="switch"
+              aria-checked={settings.preferences.showBuyerAddress ?? true}
+            >
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${(settings.preferences.showBuyerAddress ?? true) ? 'translate-x-5' : 'translate-x-0'}`}
               />
             </button>
           </div>
