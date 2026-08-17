@@ -225,36 +225,58 @@ export async function pullFromFirebase() {
     // Pull Bills
     const billsSnapshot = await get(child(dbRef, 'bills'));
     if (billsSnapshot.exists()) {
-      const serverBills: Record<string, Bill> = billsSnapshot.val();
-      const idb = await initDB();
-      const tx = idb.transaction('bills', 'readwrite');
-      const store = tx.objectStore('bills');
-      
-      for (const key in serverBills) {
-        const serverBill = serverBills[key];
-        serverBill.syncStatus = 'synced';
-        await store.put(serverBill);
-      }
-      await tx.done;
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('local-bills-updated'));
+      const serverBillsData = billsSnapshot.val();
+      if (serverBillsData && typeof serverBillsData === 'object') {
+        const idb = await initDB();
+        const tx = idb.transaction('bills', 'readwrite');
+        const store = tx.objectStore('bills');
+        
+        for (const key in serverBillsData) {
+          const rawBill = serverBillsData[key];
+          if (rawBill && typeof rawBill === 'object') {
+            const serverBill: Bill = {
+              ...rawBill,
+              id: rawBill.id || key,
+              syncStatus: 'synced'
+            };
+            await store.put(serverBill);
+          }
+        }
+        await tx.done;
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('local-bills-updated'));
+        }
       }
     }
     
     // Pull Settings
     const settingsSnapshot = await get(child(dbRef, 'settings'));
     if (settingsSnapshot.exists()) {
-      const serverSettings: Record<string, AppSettings> = settingsSnapshot.val();
-      const idb = await initDB();
-      const tx = idb.transaction('settings', 'readwrite');
-      const store = tx.objectStore('settings');
-      
-      for (const key in serverSettings) {
-        const serverSetting = serverSettings[key];
-        serverSetting.syncStatus = 'synced';
-        await store.put(serverSetting);
+      const serverSettingsData = settingsSnapshot.val();
+      if (serverSettingsData && typeof serverSettingsData === 'object') {
+        const idb = await initDB();
+        const tx = idb.transaction('settings', 'readwrite');
+        const store = tx.objectStore('settings');
+        
+        // Check if settings is a single AppSettings object or a map of settings
+        if ('supplier' in serverSettingsData || 'id' in serverSettingsData) {
+          const setting = { ...serverSettingsData, id: serverSettingsData.id || 'default', syncStatus: 'synced' as const };
+          await store.put(setting);
+        } else {
+          for (const key in serverSettingsData) {
+            const rawSetting = serverSettingsData[key];
+            if (rawSetting && typeof rawSetting === 'object') {
+              const serverSetting: AppSettings = {
+                ...rawSetting,
+                id: rawSetting.id || key,
+                syncStatus: 'synced'
+              };
+              await store.put(serverSetting);
+            }
+          }
+        }
+        await tx.done;
       }
-      await tx.done;
     }
   } catch (error) {
     console.error("Failed to pull from Firebase", error);
@@ -280,23 +302,31 @@ export function setupRealtimeSync() {
   const dbRef = ref(db, 'bills');
   onValue(dbRef, async (snapshot) => {
     if (snapshot.exists()) {
-      const serverBills: Record<string, Bill> = snapshot.val();
-      const idb = await initDB();
-      const tx = idb.transaction('bills', 'readwrite');
-      const store = tx.objectStore('bills');
-      
-      let updated = false;
-      for (const key in serverBills) {
-        const serverBill = serverBills[key];
-        serverBill.syncStatus = 'synced';
-        await store.put(serverBill);
-        updated = true;
-      }
-      
-      await tx.done;
-      
-      if (updated) {
-        window.dispatchEvent(new Event('local-bills-updated'));
+      const serverBillsData = snapshot.val();
+      if (serverBillsData && typeof serverBillsData === 'object') {
+        const idb = await initDB();
+        const tx = idb.transaction('bills', 'readwrite');
+        const store = tx.objectStore('bills');
+        
+        let updated = false;
+        for (const key in serverBillsData) {
+          const rawBill = serverBillsData[key];
+          if (rawBill && typeof rawBill === 'object') {
+            const serverBill: Bill = {
+              ...rawBill,
+              id: rawBill.id || key,
+              syncStatus: 'synced'
+            };
+            await store.put(serverBill);
+            updated = true;
+          }
+        }
+        
+        await tx.done;
+        
+        if (updated) {
+          window.dispatchEvent(new Event('local-bills-updated'));
+        }
       }
     }
   });
