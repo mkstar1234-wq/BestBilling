@@ -87,10 +87,11 @@ export function useAuth(): AuthState {
   const logout = async () => {
     try {
       await signOut(auth);
+    } catch (err: any) {
+      console.warn('Sign Out Warning:', err?.message || err);
+    } finally {
       setUser(null);
       setError(null);
-    } catch (err: any) {
-      console.error('Sign Out Error:', err);
     }
   };
 

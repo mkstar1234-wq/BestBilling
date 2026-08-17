@@ -107,27 +107,33 @@ export async function initDB(): Promise<IDBPDatabase<BillingDB>> {
 }
 
 /**
- * Safe transaction runner that retries automatically once if database connection was closed/suspended.
+ * Safe transaction runner that retries automatically if database connection was closed/suspended or closing.
  */
-async function runWithRetry<T>(operation: (idb: IDBPDatabase<BillingDB>) => Promise<T>): Promise<T> {
-  try {
-    const idb = await initDB();
-    return await operation(idb);
-  } catch (err: any) {
-    const errMsg = err?.message || String(err);
-    const isClosingOrClosed = 
-      err?.name === 'InvalidStateError' || 
-      errMsg.includes('closing') || 
-      errMsg.includes('closed') ||
-      errMsg.includes('hidden');
+async function runWithRetry<T>(operation: (idb: IDBPDatabase<BillingDB>) => Promise<T>, maxRetries = 2): Promise<T> {
+  let attempt = 0;
+  while (true) {
+    try {
+      const idb = await initDB();
+      return await operation(idb);
+    } catch (err: any) {
+      attempt++;
+      const errMsg = (err?.message || String(err)).toLowerCase();
+      const isClosingOrClosed = 
+        err?.name === 'InvalidStateError' || 
+        errMsg.includes('closing') || 
+        errMsg.includes('closed') ||
+        errMsg.includes('hidden') ||
+        errMsg.includes('connection is closing');
 
-    if (isClosingOrClosed) {
-      console.warn('[IndexedDB] Connection was closed/closing. Re-initializing and retrying operation...', err);
-      resetDBHandle();
-      const freshIdb = await initDB();
-      return await operation(freshIdb);
+      if (isClosingOrClosed && attempt <= maxRetries) {
+        console.warn(`[IndexedDB] Connection closing/suspended (attempt ${attempt}/${maxRetries}). Resetting handle and retrying...`, err);
+        resetDBHandle();
+        // Wait a short tick for mobile browser to release old handle
+        await new Promise((resolve) => setTimeout(resolve, 80 * attempt));
+        continue;
+      }
+      throw err;
     }
-    throw err;
   }
 }
 
@@ -189,33 +195,43 @@ export async function saveSettingsLocally(settings: AppSettings) {
  * Get all bills from local DB.
  */
 export async function getLocalBills(): Promise<Bill[]> {
-  const bills = await runWithRetry(async (idb) => {
-    return await idb.getAllFromIndex('bills', 'by-date');
-  });
+  try {
+    const bills = await runWithRetry(async (idb) => {
+      return await idb.getAllFromIndex('bills', 'by-date');
+    });
 
-  const trailingDigitsRegex = /(\d+)(?=\D*$)/;
+    const trailingDigitsRegex = /(\d+)(?=\D*$)/;
 
-  return bills.sort((a, b) => {
-    const matchA = (a.invoiceNumber || '').match(trailingDigitsRegex);
-    const numA = matchA && matchA[1] ? parseInt(matchA[1], 10) : 0;
+    return (bills || []).sort((a, b) => {
+      const matchA = (a.invoiceNumber || '').match(trailingDigitsRegex);
+      const numA = matchA && matchA[1] ? parseInt(matchA[1], 10) : 0;
 
-    const matchB = (b.invoiceNumber || '').match(trailingDigitsRegex);
-    const numB = matchB && matchB[1] ? parseInt(matchB[1], 10) : 0;
+      const matchB = (b.invoiceNumber || '').match(trailingDigitsRegex);
+      const numB = matchB && matchB[1] ? parseInt(matchB[1], 10) : 0;
 
-    if (numB !== numA) {
-      return numB - numA;
-    }
-    return (b.createdAt || 0) - (a.createdAt || 0);
-  });
+      if (numB !== numA) {
+        return numB - numA;
+      }
+      return (b.createdAt || 0) - (a.createdAt || 0);
+    });
+  } catch (err) {
+    console.warn('[IndexedDB] getLocalBills fallback returned empty list:', err);
+    return [];
+  }
 }
 
 /**
  * Get settings from local DB.
  */
 export async function getLocalSettings(): Promise<AppSettings | undefined> {
-  return await runWithRetry(async (idb) => {
-    return await idb.get('settings', 'default');
-  });
+  try {
+    return await runWithRetry(async (idb) => {
+      return await idb.get('settings', 'default');
+    });
+  } catch (err) {
+    console.warn('[IndexedDB] getLocalSettings fallback returned undefined:', err);
+    return undefined;
+  }
 }
 
 /**

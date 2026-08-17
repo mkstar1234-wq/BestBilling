@@ -3,6 +3,8 @@ import { getDatabase } from 'firebase/database';
 import { 
   initializeAuth, 
   indexedDBLocalPersistence, 
+  browserLocalPersistence,
+  inMemoryPersistence,
   browserPopupRedirectResolver, 
   GoogleAuthProvider 
 } from 'firebase/auth';
@@ -20,7 +22,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getDatabase(app);
 export const auth = initializeAuth(app, {
-  persistence: [indexedDBLocalPersistence],
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence],
   popupRedirectResolver: browserPopupRedirectResolver,
 });
 export const googleProvider = new GoogleAuthProvider();
