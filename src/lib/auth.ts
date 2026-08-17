@@ -1,5 +1,12 @@
 import { useState, useEffect } from 'react';
-import { User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import { 
+  User, 
+  onAuthStateChanged, 
+  signInWithPopup, 
+  signOut, 
+  setPersistence, 
+  browserLocalPersistence 
+} from 'firebase/auth';
 import { auth, googleProvider } from './firebase';
 
 const ALLOWED_EMAIL = (import.meta.env.VITE_ALLOWED_EMAIL || 'mkjain000@gmail.com').toLowerCase().trim();
@@ -19,6 +26,11 @@ export function useAuth(): AuthState {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Ensure local persistence is configured on initialization
+    setPersistence(auth, browserLocalPersistence).catch((err) => {
+      console.warn('Could not set browserLocalPersistence on init:', err);
+    });
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         const userEmail = (currentUser.email || '').toLowerCase().trim();
@@ -27,9 +39,6 @@ export function useAuth(): AuthState {
           await signOut(auth);
           setUser(null);
           setError(`Unauthorized email address: ${currentUser.email}. Only ${ALLOWED_EMAIL} is permitted to access this application.`);
-          if (typeof window !== 'undefined') {
-            alert(`Unauthorized email address: ${currentUser.email}\nOnly ${ALLOWED_EMAIL} is allowed to log in.`);
-          }
         } else {
           setUser(currentUser);
           setError(null);
@@ -47,6 +56,10 @@ export function useAuth(): AuthState {
     try {
       setError(null);
       setLoading(true);
+
+      // Ensure persistence is set before initiating the popup
+      await setPersistence(auth, browserLocalPersistence).catch(() => {});
+
       googleProvider.setCustomParameters({ prompt: 'select_account' });
       const result = await signInWithPopup(auth, googleProvider);
       const email = (result.user.email || '').toLowerCase().trim();
@@ -56,9 +69,6 @@ export function useAuth(): AuthState {
         setUser(null);
         const errMsg = `Unauthorized email address: ${result.user.email}. Access denied.`;
         setError(errMsg);
-        if (typeof window !== 'undefined') {
-          alert(`Unauthorized email address: ${result.user.email}\nOnly ${ALLOWED_EMAIL} is allowed to log in.`);
-        }
       } else {
         setUser(result.user);
         setError(null);
