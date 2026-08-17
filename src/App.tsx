@@ -20,9 +20,11 @@ export default function App() {
   const [editingBill, setEditingBill] = useState<Bill | null>(null);
 
   useEffect(() => {
+    let unsubscribeSync: (() => void) | undefined;
+
     // Only setup realtime sync when user is authenticated
     if (user) {
-      setupRealtimeSync();
+      unsubscribeSync = setupRealtimeSync();
     }
 
     // Check dark mode preference on load
@@ -35,6 +37,12 @@ export default function App() {
       }
     };
     loadTheme();
+
+    return () => {
+      if (unsubscribeSync) {
+        unsubscribeSync();
+      }
+    };
   }, [user]);
 
   // Loading state while checking auth
