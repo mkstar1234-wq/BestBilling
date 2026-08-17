@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Save, User, Settings as SettingsIcon, Building, FileText, Smartphone, Cloud, CloudOff, Moon, Sun } from 'lucide-react';
+import { Save, User as UserIcon, Settings as SettingsIcon, Building, FileText, Smartphone, Cloud, CloudOff, Moon, Sun, LogOut } from 'lucide-react';
 import { AppSettings } from '../types';
 import { getLocalSettings, saveSettingsLocally } from '../lib/offlineSync';
 import { hapticFeedback } from '../lib/haptics';
 import { INDIAN_STATES } from '../lib/states';
+import { User, signOut } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
-export function SettingsView() {
+interface SettingsViewProps {
+  user?: User | null;
+  onLogout?: () => Promise<void>;
+}
+
+export function SettingsView({ user, onLogout }: SettingsViewProps) {
   const [settings, setSettings] = useState<AppSettings>({
     id: 'default',
     supplier: {
@@ -171,6 +178,68 @@ export function SettingsView() {
       {/* Main Scrollable Content */}
       <main className="flex-1 overflow-y-auto pb-6">
         
+        {/* Account / User Section */}
+        {user && (
+          <section className="p-4 bg-white mt-2 mb-2 shadow-sm border-y border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center">
+                <UserIcon className="text-blue-600 dark:text-blue-400 mr-2" size={18} />
+                <h2 className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider">Account & Security</h2>
+              </div>
+              <span className="text-[10px] bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300 font-semibold px-2 py-0.5 rounded-full">
+                Authorized
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 bg-gray-50 dark:bg-gray-750 p-3 rounded-xl border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-3 overflow-hidden">
+                {user.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt={user.displayName || 'User'}
+                    className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-600 object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm">
+                    {(user.email || 'U')[0].toUpperCase()}
+                  </div>
+                )}
+                <div className="overflow-hidden">
+                  <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                    {user.displayName || 'Google Account'}
+                  </div>
+                  <div className="text-[11px] text-gray-500 dark:text-gray-400 truncate font-mono">
+                    {user.email}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                id="sign-out-btn"
+                onClick={async () => {
+                  hapticFeedback('medium');
+                  try {
+                    if (onLogout) {
+                      await onLogout();
+                    } else {
+                      await signOut(auth);
+                    }
+                  } catch (err) {
+                    console.error('Sign Out failed:', err);
+                    await signOut(auth);
+                  }
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/60 active:scale-95 text-red-600 dark:text-red-400 text-xs font-semibold rounded-lg transition-all shrink-0 cursor-pointer"
+              >
+                <LogOut size={13} />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </section>
+        )}
+
         {/* Business Profile */}
         <section className="p-4 bg-white mt-2 mb-2 shadow-sm border-y border-gray-100">
           <div className="flex items-center mb-4">
