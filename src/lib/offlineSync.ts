@@ -202,8 +202,12 @@ export async function syncPendingData() {
       }
       
       await idb.delete('syncQueue', item.id);
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Failed to sync item ${item.id}:`, error);
+      const errMsg = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
+      if (typeof window !== 'undefined') {
+        alert("Firebase Sync Error: " + errMsg);
+      }
       break; 
     }
   }
