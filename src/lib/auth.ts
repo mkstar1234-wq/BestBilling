@@ -3,9 +3,7 @@ import {
   User, 
   onAuthStateChanged, 
   signInWithPopup, 
-  signOut, 
-  setPersistence, 
-  browserLocalPersistence 
+  signOut 
 } from 'firebase/auth';
 import { auth, googleProvider } from './firebase';
 
@@ -26,11 +24,6 @@ export function useAuth(): AuthState {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Ensure local persistence is configured on initialization
-    setPersistence(auth, browserLocalPersistence).catch((err) => {
-      console.warn('Could not set browserLocalPersistence on init:', err);
-    });
-
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         const userEmail = (currentUser.email || '').toLowerCase().trim();
@@ -57,9 +50,7 @@ export function useAuth(): AuthState {
       setError(null);
       setLoading(true);
 
-      // Ensure persistence is set before initiating the popup
-      await setPersistence(auth, browserLocalPersistence).catch(() => {});
-
+      // Trigger popup immediately on the direct user click gesture (no intervening await)
       googleProvider.setCustomParameters({ prompt: 'select_account' });
       const result = await signInWithPopup(auth, googleProvider);
       const email = (result.user.email || '').toLowerCase().trim();
