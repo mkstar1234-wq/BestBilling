@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import { User, onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from 'firebase/auth';
 import { auth, googleProvider } from './firebase';
 
 const ALLOWED_EMAIL = (import.meta.env.VITE_ALLOWED_EMAIL || 'mkjain000@gmail.com').toLowerCase().trim();
@@ -19,6 +19,24 @@ export function useAuth(): AuthState {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Handle redirect sign in result for mobile / standalone PWAs
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result?.user) {
+          const email = (result.user.email || '').toLowerCase().trim();
+          if (ALLOWED_EMAIL && email !== ALLOWED_EMAIL) {
+            await signOut(auth);
+            setUser(null);
+            setError(`Unauthorized email address: ${result.user.email}. Access denied.`);
+          }
+        }
+      })
+      .catch((err) => {
+        if (err?.code !== 'auth/popup-closed-by-user' && err?.code !== 'auth/cancelled-popup-request') {
+          console.warn('Redirect auth error:', err);
+        }
+      });
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         const userEmail = (currentUser.email || '').toLowerCase().trim();
@@ -48,20 +66,36 @@ export function useAuth(): AuthState {
       setError(null);
       setLoading(true);
       googleProvider.setCustomParameters({ prompt: 'select_account' });
-      const result = await signInWithPopup(auth, googleProvider);
-      const email = (result.user.email || '').toLowerCase().trim();
       
-      if (ALLOWED_EMAIL && email !== ALLOWED_EMAIL) {
-        await signOut(auth);
-        setUser(null);
-        const errMsg = `Unauthorized email address: ${result.user.email}. Access denied.`;
-        setError(errMsg);
-        if (typeof window !== 'undefined') {
-          alert(`Unauthorized email address: ${result.user.email}\nOnly ${ALLOWED_EMAIL} is allowed to log in.`);
+      const isStandalonePWA = typeof window !== 'undefined' && 
+        (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true);
+
+      // In standalone PWA, try popup first; if popup is blocked, seamlessly fall back to redirect
+      try {
+        const result = await signInWithPopup(auth, googleProvider);
+        const email = (result.user.email || '').toLowerCase().trim();
+        
+        if (ALLOWED_EMAIL && email !== ALLOWED_EMAIL) {
+          await signOut(auth);
+          setUser(null);
+          const errMsg = `Unauthorized email address: ${result.user.email}. Access denied.`;
+          setError(errMsg);
+          if (typeof window !== 'undefined') {
+            alert(`Unauthorized email address: ${result.user.email}\nOnly ${ALLOWED_EMAIL} is allowed to log in.`);
+          }
+        } else {
+          setUser(result.user);
+          setError(null);
         }
-      } else {
-        setUser(result.user);
-        setError(null);
+      } catch (popupErr: any) {
+        if (popupErr?.code === 'auth/popup-blocked' || popupErr?.code === 'auth/popup-closed-by-user' && isStandalonePWA) {
+          // If popup is blocked in standalone PWA, use redirect
+          if (popupErr?.code === 'auth/popup-blocked') {
+            await signInWithRedirect(auth, googleProvider);
+            return;
+          }
+        }
+        throw popupErr;
       }
     } catch (err: any) {
       // Don't log or show error if user closed or cancelled the popup

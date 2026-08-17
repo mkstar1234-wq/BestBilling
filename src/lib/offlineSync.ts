@@ -28,9 +28,9 @@ interface BillingDB extends DBSchema {
 const DB_NAME = 'billing_app_db';
 const DB_VERSION = 2; // Bumped version to add settings store
 
-let dbPromise: Promise<IDBPDatabase<BillingDB>>;
+let dbPromise: Promise<IDBPDatabase<BillingDB>> | null = null;
 
-export function initDB() {
+export function initDB(): Promise<IDBPDatabase<BillingDB>> {
   if (!dbPromise) {
     dbPromise = openDB<BillingDB>(DB_NAME, DB_VERSION, {
       upgrade(db, oldVersion) {
@@ -43,9 +43,35 @@ export function initDB() {
           db.createObjectStore('settings', { keyPath: 'id' });
         }
       },
+      blocked() {
+        console.warn('IndexedDB database upgrade blocked.');
+      },
+      blocking() {
+        console.warn('IndexedDB database connection blocking upgrade; closing.');
+        if (dbPromise) {
+          dbPromise.then(db => db.close()).catch(() => {});
+          dbPromise = null;
+        }
+      },
+      terminated() {
+        console.warn('IndexedDB database connection terminated abnormally.');
+        dbPromise = null;
+      }
+    }).catch(err => {
+      console.error('Failed to open IndexedDB:', err);
+      dbPromise = null;
+      throw err;
     });
   }
   return dbPromise;
+}
+
+// Reset dbPromise if database closes in PWA background
+export function resetDBConnection() {
+  if (dbPromise) {
+    dbPromise.then(db => db.close()).catch(() => {});
+    dbPromise = null;
+  }
 }
 
 /**
@@ -283,13 +309,18 @@ export async function pullFromFirebase() {
   }
 }
 
-// Setup network listeners for background sync
-if (typeof window !== 'undefined') {
-  window.addEventListener('online', () => {
-    console.log('App is online. Triggering background sync...');
-    syncPendingData();
-    pullFromFirebase();
-  });
+// Setup network listeners for background sync (triggered when authenticated)
+export function registerNetworkSyncListeners() {
+  if (typeof window !== 'undefined') {
+    const handleOnline = () => {
+      console.log('App is online. Triggering background sync...');
+      syncPendingData().catch(err => console.warn('Background sync warning:', err));
+      pullFromFirebase().catch(err => console.warn('Background pull warning:', err));
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }
+  return () => {};
 }
 
 /**

@@ -9,7 +9,7 @@ import { BillForm } from './components/BillForm';
 import { BillHistory } from './components/BillHistory';
 import { SettingsView } from './components/SettingsView';
 import { LoginScreen } from './components/LoginScreen';
-import { setupRealtimeSync, getLocalSettings } from './lib/offlineSync';
+import { setupRealtimeSync, getLocalSettings, registerNetworkSyncListeners } from './lib/offlineSync';
 import { useAuth } from './lib/auth';
 import { Bill } from './types';
 import './index.css';
@@ -20,21 +20,37 @@ export default function App() {
   const [editingBill, setEditingBill] = useState<Bill | null>(null);
 
   useEffect(() => {
-    // Only setup realtime sync when user is authenticated
+    // Only initialize DB operations and sync listeners after authentication
     if (user) {
       setupRealtimeSync();
-    }
+      const unregisterNetwork = registerNetworkSyncListeners();
 
-    // Check dark mode preference on load
-    const loadTheme = async () => {
-      const settings = await getLocalSettings();
-      if (settings?.preferences?.darkMode) {
+      // Check dark mode preference from local DB once authenticated
+      const loadTheme = async () => {
+        try {
+          const settings = await getLocalSettings();
+          if (settings?.preferences?.darkMode) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme_dark', 'true');
+          } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme_dark', 'false');
+          }
+        } catch (e) {
+          console.warn('Failed to load theme preference:', e);
+        }
+      };
+      loadTheme();
+
+      return () => {
+        unregisterNetwork();
+      };
+    } else {
+      // For unauthenticated login screen, use simple localStorage check to avoid touching IndexedDB
+      if (localStorage.getItem('theme_dark') === 'true') {
         document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
       }
-    };
-    loadTheme();
+    }
   }, [user]);
 
   // Loading state while checking auth
