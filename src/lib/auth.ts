@@ -6,6 +6,7 @@ import {
   signOut 
 } from 'firebase/auth';
 import { auth, googleProvider } from './firebase';
+import { resetDBHandle } from './offlineSync';
 
 const ALLOWED_EMAIL = (import.meta.env.VITE_ALLOWED_EMAIL || 'mkjain000@gmail.com').toLowerCase().trim();
 
@@ -90,8 +91,12 @@ export function useAuth(): AuthState {
     } catch (err: any) {
       console.warn('Sign Out Warning:', err?.message || err);
     } finally {
+      resetDBHandle();
       setUser(null);
       setError(null);
+      if (typeof window !== 'undefined') {
+        window.location.reload();
+      }
     }
   };
 
