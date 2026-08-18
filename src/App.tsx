@@ -9,7 +9,6 @@ import { BillForm } from './components/BillForm';
 import { BillHistory } from './components/BillHistory';
 import { SettingsView } from './components/SettingsView';
 import { LoginScreen } from './components/LoginScreen';
-import { DebugConsoleOverlay } from './components/DebugConsoleOverlay';
 import { setupRealtimeSync, getLocalSettings } from './lib/offlineSync';
 import { useAuth } from './lib/auth';
 import { Bill } from './types';
@@ -52,7 +51,6 @@ export default function App() {
       <div className="max-w-md mx-auto h-[100dvh] flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
         <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
         <p className="text-xs text-gray-500 font-medium">Verifying authorization...</p>
-        <DebugConsoleOverlay />
       </div>
     );
   }
@@ -60,15 +58,12 @@ export default function App() {
   // If not logged in, show ONLY the Login screen
   if (!user) {
     return (
-      <>
-        <LoginScreen
-          onLogin={signInWithGoogle}
-          loading={loading}
-          error={error}
-          allowedEmail={allowedEmail}
-        />
-        <DebugConsoleOverlay />
-      </>
+      <LoginScreen
+        onLogin={signInWithGoogle}
+        loading={loading}
+        error={error}
+        allowedEmail={allowedEmail}
+      />
     );
   }
 
@@ -105,9 +100,6 @@ export default function App() {
         }
         setActiveTab(tab);
       }} />
-
-      {/* Live On-Screen Debug Console */}
-      <DebugConsoleOverlay />
     </div>
   );
 }
