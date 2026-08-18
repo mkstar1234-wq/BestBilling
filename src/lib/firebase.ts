@@ -22,7 +22,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getDatabase(app);
 export const auth = initializeAuth(app, {
-  persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence],
+  persistence: [browserLocalPersistence, indexedDBLocalPersistence, inMemoryPersistence],
   popupRedirectResolver: browserPopupRedirectResolver,
 });
 export const googleProvider = new GoogleAuthProvider();

@@ -87,6 +87,7 @@ export function useAuth(): AuthState {
 
   const logout = async () => {
     try {
+      setLoading(true);
       await signOut(auth);
     } catch (err: any) {
       console.warn('Sign Out Warning:', err?.message || err);
@@ -94,9 +95,7 @@ export function useAuth(): AuthState {
       resetDBHandle();
       setUser(null);
       setError(null);
-      if (typeof window !== 'undefined') {
-        window.location.reload();
-      }
+      setLoading(false);
     }
   };
 
