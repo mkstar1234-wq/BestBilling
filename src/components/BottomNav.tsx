@@ -1,4 +1,4 @@
-import { FileText, History, Settings, Users } from 'lucide-react';
+import { FileText, History, Settings } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { hapticFeedback } from '../lib/haptics';
 

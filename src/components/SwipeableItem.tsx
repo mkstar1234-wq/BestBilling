@@ -11,7 +11,7 @@ interface SwipeableItemProps {
 }
 
 export function SwipeableItem({ onDelete, children, disabled = false }: SwipeableItemProps) {
-  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     if (disabled) return;
     // If swiped left past threshold
     if (info.offset.x < -80) {
